@@ -1,0 +1,55 @@
+minio:
+  conn_type: aws
+  description: Koneksi ke minio / s3 (data lake)
+  extra: '{"endpoint_url": "minio:9000"}'
+  host: minio
+  login: minio
+  password: minio123
+  port: null
+
+staging_db:
+  conn_type: postgres
+  description: Koneksi ke staging database
+  extra: "{}"
+  host: staging_db
+  login: postgres
+  password: postgres
+  port: 5432
+  schema: staging_db
+
+warehouse_db:
+  conn_type: postgres
+  description: Koneksi ke data warehouse
+  extra: "{}"
+  host: warehouse_db
+  login: postgres
+  password: postgres
+  port: 5432
+  schema: warehouse_db
+
+dellstore_db:
+  conn_type: postgres
+  description: Koneksi ke source database dellstore
+  extra: ""
+  host: dellstore_db
+  login: postgres
+  password: postgres
+  port: 5432
+  schema: dellstore
+
+profile_quality_db:
+  conn_type: postgres
+  description: Koneksi ke database untuk profile quality
+  extra: ""
+  host: profile_quality_db
+  login: postgres
+  password: postgres
+  port: 5432
+  schema: profile_quality_db
+
+spark-conn:
+  conn_type: spark
+  description: Koneksi ke spark-master
+  extra: ""
+  host: spark://spark-master
+  port: 7077
