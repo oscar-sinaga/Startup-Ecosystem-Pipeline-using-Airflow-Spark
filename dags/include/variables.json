@@ -9,8 +9,8 @@
   "startup_table_api": "milestones",
   "pkey_startup_table_api": "milestone_id",
   "startup_staging_incremental_mode": "False",
-  "list_startup_table_db": "['company', 'funds', 'acquisitions', 'funding_rounds', 'investments', 'ipos']",
-  "pkey_startup_table_db": "{'company': 'object_id', 'funds': 'fund_id', 'acquisitions': 'acquisition_id', 'funding_rounds': 'funding_round_id', 'investments': 'investment_id', 'ipos': 'ipo_id'}",
+  "list_startup_table_db": "['company', 'funds', 'acquisition', 'funding_rounds', 'investments', 'ipos']",
+  "pkey_startup_table_db": "{'company': 'object_id', 'funds': 'fund_id', 'acquisition': 'acquisition_id', 'funding_rounds': 'funding_round_id', 'investments': 'investment_id', 'ipos': 'ipo_id'}",
   "list_startup_table_spreadsheet": "['people', 'relationships']",
   "pkey_startup_table_spreadsheet": "{'people': 'people_id', 'relationships': 'relationship_id'}"
 }
