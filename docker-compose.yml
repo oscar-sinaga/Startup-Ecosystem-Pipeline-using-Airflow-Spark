@@ -26,7 +26,7 @@ services:
       POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
       POSTGRES_DB: ${AIRFLOW_DB_NAME}
     ports:
-      - 5433:5432
+      - ${AIRFLOW_PORT}:5432
     volumes:
       - airflow_metadata:/var/lib/postgresql/data
     networks:
@@ -44,7 +44,7 @@ services:
     volumes:
       - ./data/source/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - 5434:5432 
+      - ${STARTUP_INVESTMENTS_PORT}:5432 
     networks:
       - airflow-networks
 
@@ -78,7 +78,7 @@ services:
       POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD}
       POSTGRES_DB: ${STAGING_DB_NAME}
     ports:
-      - 5435:5432
+      - ${STAGING_PORT}:5432
     networks:
       - airflow-networks
     volumes:
@@ -93,7 +93,7 @@ services:
       POSTGRES_PASSWORD: ${LOG_DB_PASSWORD}
       POSTGRES_DB: ${LOG_DB_NAME}
     ports:
-      - 5436:5432
+      - ${LOG_PORT}:5432
     networks:
       - airflow-networks
     volumes:
