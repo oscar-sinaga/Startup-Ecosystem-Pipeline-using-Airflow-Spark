@@ -27,25 +27,25 @@ warehouse_db:
   port: 5432
   schema: warehouse_db
 
-dellstore_db:
+etl_log:
   conn_type: postgres
-  description: Koneksi ke source database dellstore
-  extra: ""
-  host: dellstore_db
+  description: Koneksi ke data warehouse
+  extra: "{}"
+  host: pipeline
   login: postgres
   password: postgres
   port: 5432
-  schema: dellstore
+  schema: etl_log
 
-profile_quality_db:
+startup_investments_db:
   conn_type: postgres
-  description: Koneksi ke database untuk profile quality
+  description: Koneksi ke source database startup
   extra: ""
-  host: profile_quality_db
+  host: startup_investments_db
   login: postgres
   password: postgres
   port: 5432
-  schema: profile_quality_db
+  schema: startup_investments_db
 
 spark-conn:
   conn_type: spark
