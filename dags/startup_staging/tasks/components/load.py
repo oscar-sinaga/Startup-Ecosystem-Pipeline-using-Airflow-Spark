@@ -145,7 +145,7 @@ class Load:
                     object_name = f'/startup-api/{table_name}/*.csv'
                     # Read data from S3
                     df = spark.read.options(
-                        delimiter=",",
+                        delimiter=";",
                         header=True
                     ).csv(f"s3a://{bucket_name}/{object_name}")
                     
@@ -227,7 +227,7 @@ class Load:
             try:
                 # Read data from S3
                 df = spark.read.options(
-                    delimiter=",",
+                    delimiter=";",
                     header=True
                 ).csv(f"s3a://{bucket_name}/{object_name}")
             

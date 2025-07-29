@@ -30,8 +30,8 @@ spark_conf = {
 
     # --- TAMBAHKAN KONFIGURASI CLEANUP DI SINI ---
     'spark.worker.cleanup.enabled': 'true',
-    'spark.worker.cleanup.interval': '1800',  # Cek setiap 30 menit
-    'spark.worker.cleanup.appDataTtl': '3600'   # Hapus data aplikasi yang lebih tua dari 1 jam
+    'spark.worker.cleanup.interval': '600',  # Cek setiap 30 menit
+    'spark.worker.cleanup.appDataTtl': '1200'   # Hapus data aplikasi yang lebih tua dari 1 jam
 }
 
 @task_group

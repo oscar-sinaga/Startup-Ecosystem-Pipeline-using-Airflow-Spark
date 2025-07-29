@@ -149,7 +149,7 @@ class Extract:
                 df.write \
                 .format("csv") \
                 .option("header", "true") \
-                .option("delimiter", ",") \
+                .option("delimiter", ";") \
                 .mode("overwrite") \
                 .save(f"s3a://{bucket_name}/{object_name}")
 
