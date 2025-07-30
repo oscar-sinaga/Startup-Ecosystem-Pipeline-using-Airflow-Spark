@@ -13,10 +13,10 @@ from helper.minio import MinioClient
 def etl_init():
     @task_group
     def generate_schema():
-        stg_generate_schema = SQLExecuteQueryOperator(
-            task_id='stg_generate_schema',
-            conn_id="staging_db",
-            sql="models/staging.sql"
+        log_generate_schema = SQLExecuteQueryOperator(
+            task_id='log_generate_schema',
+            conn_id="log_db",
+            sql="models/etl_log.sql"
         )
 
         warehouse_generate_schema = SQLExecuteQueryOperator(
@@ -25,7 +25,7 @@ def etl_init():
             sql="models/warehouse.sql"
         )
 
-        stg_generate_schema >> warehouse_generate_schema
+        [log_generate_schema, warehouse_generate_schema]
     
     @task
     def create_bucket():
