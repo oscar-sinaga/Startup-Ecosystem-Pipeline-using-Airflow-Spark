@@ -26,7 +26,7 @@ class PysparkPostgresClient(PostgresHook):
 class CustomPysparkPostgres(PostgresHook):
 
     @staticmethod
-    def _insert_log(spark,log_msg,connection_id="etl_log",table_name="etl_log"):
+    def _insert_log(spark,log_msg,connection_id="log_db",table_name="etl_log"):
         try:
             DB_URL, DB_USER, DB_PASS = PysparkPostgresClient._get_conn_config(connection_id)
 
