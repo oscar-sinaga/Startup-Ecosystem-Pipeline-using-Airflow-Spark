@@ -1,10 +1,5 @@
 {
-  "dellstore_api_url": "https://api-history-order.vercel.app/api/dummydata",
-  "list_dellstore_table": "['categories', 'customers', 'inventory', 'cust_hist', 'orders', 'products', 'orderlines']",
-  "pkey_dellstore_table": "{'categories': 'category', 'customers': 'customerid', 'inventory': 'prod_id', 'cust_hist': ['customerid','orderid', 'prod_id'], 'orders':'orderid','products':'prod_id','orderlines':['orderlineid', 'orderid']}",
-  "etl_pipeline_incremental_mode": "False",
-  "dellstore_staging_incremental_mode":"False",
-  "dellstore_warehouse_incremental_mode": "False",
+  "startup_warehouse_incremental_mode": "False",
   "startup_api_url": "https://api-milestones.vercel.app/api/data",
   "startup_table_api": "milestones",
   "pkey_startup_table_api": "milestone_id",
