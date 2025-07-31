@@ -134,11 +134,15 @@ class Load:
                 if incremental:
                     print('masuk incremental')
                     # Define bucket and object name
-                    object_name = f'/startup-api/{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}.json'
+                    date = '2008-08-11'
+                    date_before = (pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")
+                    object_name = f'/startup-api/{table_name}-{date_before}/*.csv'
 
                     # Read data from S3
                     df = spark.read.options(
-                    ).json(f"s3a://{bucket_name}/{object_name}")
+                        delimiter=";",
+                        header=True
+                    ).csv(f"s3a://{bucket_name}/{object_name}")
                     
                 else:
                     # Define bucket and object name
@@ -148,6 +152,7 @@ class Load:
                         delimiter=";",
                         header=True
                     ).csv(f"s3a://{bucket_name}/{object_name}")
+                    print('Data berhasil di baca')
                     
             except:
                 skip_msg = f"{table_name} doesn't have new data. Skipped..."
@@ -171,6 +176,7 @@ class Load:
                 schema='public',
                 connection_id='staging_db'
             )
+            print('Data berhasil disimpan')
 
             # Logging Success
             log_msg = {

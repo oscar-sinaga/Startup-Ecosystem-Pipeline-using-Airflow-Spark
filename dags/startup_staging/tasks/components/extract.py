@@ -29,6 +29,7 @@ class Extract:
             if eval(incremental):
                 print(f'incremental dijalankan :{incremental}')
                 query = f"(SELECT * FROM {table_name} WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                print(query)
                 object_name = f'/startup-db/{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}'
 
             DB_URL, DB_USER, DB_PASS = PysparkPostgresClient._get_conn_config('startup_investments_db')
@@ -106,52 +107,37 @@ class Extract:
 
         try:
             if eval(incremental):
-                response = requests.get(
-                    url=Variable.get('startup_api_url'),
-                    params={"start_date": date, "end_date": date},
-                )
+                date_before = (pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")
+                df = PysparkApiHelper.extract_api_spark(spark, Variable.get('startup_api_url'), {"start_date": date_before, "end_date": date_before})
 
-                if response.status_code != 200:
-                    raise AirflowException(f"Failed to fetch data from API. Status code: {response.status_code}")
-
-                json_data = response.json()
-
-                if not json_data:
-                    skip_msg = f"No new data in API {table_name}. Skipped..."
+                if df.isEmpty():
+                    skip_msg = f"{table_name} doesn't have new data. Skipped..."
                     log_msg = {
-                        "step": "staging",
-                        "process": "extraction",
-                        "status": "skip",
-                        "source": "api",
-                        "table_name": table_name,
-                        "error_msg": skip_msg,
-                        "etl_date": current_timestamp
+                    "step": "staging",
+                    "process": "extraction",
+                    "status": "skip",
+                    "source": "api",
+                    "table_name": table_name,
+                    "error_msg": skip_msg,
+                    "etl_date": current_timestamp
                     }
                     print(skip_msg)
-                    return 
+                    return
 
-                json_data = PysparkApiHelper.replace_newlines(json_data)
-                df = spark.createDataFrame(json_data)
-
-                object_name = f'/startup-api/{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}'
-                
+                object_name = f'/startup-api/{table_name}-{date_before}'
                 bucket_name = 'extracted-data'
-                df.write \
-                    .format("json") \
-                    .mode("overwrite") \
-                    .save(f"s3a://{bucket_name}/{object_name}")
                 
             else:
                 df = PysparkApiHelper.extract_all_data_api(spark, Variable.get('startup_api_url'))
                 object_name = f'/startup-api/{table_name}'
                 bucket_name = 'extracted-data'
 
-                df.write \
-                .format("csv") \
-                .option("header", "true") \
-                .option("delimiter", ";") \
-                .mode("overwrite") \
-                .save(f"s3a://{bucket_name}/{object_name}")
+            df.write \
+            .format("csv") \
+            .option("header", "true") \
+            .option("delimiter", ";") \
+            .mode("overwrite") \
+            .save(f"s3a://{bucket_name}/{object_name}")
 
 
             log_msg = {
