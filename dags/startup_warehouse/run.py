@@ -15,11 +15,11 @@ default_args = {
     catchup=False,
     default_args=default_args,
     tags=["startup"],
-    description="Extract, Transform and Load Dellstore data into Warehouse"
+    description="Extract, Transform and Load Startup Investments data into Warehouse"
 )
 
 def startup_warehouse():
-    incremental_mode = eval(Variable.get('dellstore_warehouse_incremental_mode'))
+    incremental_mode = eval(Variable.get('startup_warehouse_incremental_mode'))
     dimension_tables(incremental=incremental_mode) >> fact_tables(incremental=incremental_mode)
 
 startup_warehouse()

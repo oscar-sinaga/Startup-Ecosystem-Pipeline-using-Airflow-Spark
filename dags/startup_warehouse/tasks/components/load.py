@@ -41,8 +41,9 @@ class Load:
                 table_pkey = eval(table_pkey)
 
             # Adjust object name for incremental loading
-            if table_name!='people':
+            if table_name not in ['people','relationships']:
                 if incremental:
+                    print('incremental Start')
                     object_name = f'/{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}'
 
             try:

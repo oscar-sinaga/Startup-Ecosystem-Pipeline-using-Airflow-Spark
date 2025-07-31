@@ -38,8 +38,12 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.company) as data"
+            transformed_table_name = f"dim_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
             if incremental:
+                print('incremental Start')
                 query = f"(SELECT * FROM public.company WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                transformed_table_name_file = f"{transformed_table_name_file}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -96,13 +100,11 @@ class ExtractTransform:
             df = df.withColumn('latitude', col('latitude').cast(FloatType()))
             df = df.withColumn('longitude', col('longitude').cast(FloatType()))
             
-            transformed_table_name = f"dim_{table_name}"
-            
 
             # Write transformed data to parquet
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",
@@ -154,8 +156,8 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.people) as data"
-            if incremental:
-                query = f"(SELECT * FROM public.people WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+            transformed_table_name = f"dim_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -205,11 +207,11 @@ class ExtractTransform:
             # df = df.withColumn('affiliation', when(col('affiliation').isNull(), lit('Unknown')).otherwise(col('affiliation')))
             # df = df.withColumn('birthplace', when(col('birthplace').isNull(), lit('Unknown')).otherwise(col('birthplace')))
             
-            transformed_table_name = f"dim_{table_name}"
+            
             # Write transformed data to parquet
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",
@@ -261,8 +263,8 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.relationships) as data"
-            if incremental:
-                query = f"(SELECT * FROM public.relationships WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+            transformed_table_name = f"fact_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -372,12 +374,10 @@ class ExtractTransform:
             df = df.withColumn('end_at', col('end_at').cast(IntegerType()))
             df = df.withColumn('relationship_order', col('relationship_order').cast(IntegerType()))
 
-            
-            transformed_table_name = f"fact_{table_name}"
             # Write transformed data to parquet
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",
@@ -417,7 +417,7 @@ class ExtractTransform:
     @staticmethod
     def _fact_acquisition(incremental, date):
         """
-        Extract and transform data from the cquisition table in the staging database.
+        Extract and transform data from the acquisition table in the staging database.
         """
         current_timestamp = datetime.now().replace(microsecond=0)
         try:
@@ -429,8 +429,11 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.acquisition) as data"
+            transformed_table_name = f"fact_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
             if incremental:
                 query = f"(SELECT * FROM public.acquisition WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                transformed_table_name_file = f"{transformed_table_name_file}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -519,11 +522,9 @@ class ExtractTransform:
             df = df.withColumn('acquired_at', col('acquired_at').cast(IntegerType()))
             df = df.withColumn('price_amount', col('price_amount').cast(DecimalType()))
             
-            transformed_table_name = f"fact_{table_name}"
-            
             # Write transformed df to parquet
             df.write.parquet(
-                f"{transformed_data_path}/{transformed_table_name}",
+                f"{transformed_data_path}/{transformed_table_name_file}",
                 mode="overwrite"
             )
             log_msg = {
@@ -566,17 +567,20 @@ class ExtractTransform:
         Extract and transform data from the funding_rounds table in the staging database.
         """
         current_timestamp = datetime.now().replace(microsecond=0)
+        # Initialize Spark session
+        spark = SparkSession.builder \
+            .appName("Extract & Transform From Staging - funding_rounds") \
+            .getOrCreate()
+        table_name = "funding_rounds"
+    
         try:
-            table_name = "funding_rounds"
-            # Initialize Spark session
-            spark = SparkSession.builder \
-                .appName("Extract & Transform From Staging - funding_rounds") \
-                .getOrCreate()
-
             # Define query for extracting data
             query = "(SELECT * FROM public.funding_rounds) as data"
+            transformed_table_name = f"temp_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
             if incremental:
                 query = f"(SELECT * FROM public.funding_rounds WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                transformed_table_name_file = f"{transformed_table_name_file}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -666,12 +670,10 @@ class ExtractTransform:
             # Drop natural key
             df = df.drop("investee_company_nk")
 
-            transformed_table_name = f"temp_{table_name}"
-
             # Write transformed data to parquet
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",
@@ -722,8 +724,11 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.funds) as data"
+            transformed_table_name = f"fact_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
             if incremental:
                 query = f"(SELECT * FROM public.funds WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                transformed_table_name_file = f"{transformed_table_name_file}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -801,13 +806,10 @@ class ExtractTransform:
             df = df.withColumn('funded_at', col('funded_at').cast(IntegerType()))
             df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType()))
 
-            transformed_table_name = f"fact_{table_name}"
-
             # Write transformed data to parquet
-            df.show(5)
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",
@@ -858,8 +860,11 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.investments) as data"
+            transformed_table_name = f"temp_{table_name}"
+            transformed_table_name_file = f"{transformed_table_name}"
             if incremental:
                 query = f"(SELECT * FROM public.investments WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                transformed_table_name_file = f"{transformed_table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -870,7 +875,7 @@ class ExtractTransform:
             
             # Check if DataFrame is empty
             if df.isEmpty():
-                skip_msg = f"investments doesn't have new data. Skipped..."
+                skip_msg = f"{table_name} doesn't have new data. Skipped..."
                 log_msg = {
                 "step": "warehouse",
                 "process": "extraction and transformation",
@@ -923,12 +928,10 @@ class ExtractTransform:
             # Drop natural keys
             df = df.drop('investor_company_nk')
 
-            transformed_table_name = f"temp_{table_name}"
-
             # Write transformed data to parquet
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                         "step": "warehouse",
@@ -983,17 +986,20 @@ class ExtractTransform:
             spark = SparkSession.builder \
                 .appName("Joining Transformations table investments and funding_rounds") \
                 .getOrCreate()
-
-            object_name = f'/{table_name}/*.parquet'
+            
+            transformed_table_name_file = f"{table_name}"
+            
             temp_data = {}
 
             for temp_table in temp_tables:
+                temp_table_path = f"{temp_table}"
                 try:
                     if incremental:
-                        object_name = f'/{temp_table}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}'
+                        transformed_table_name_file = f"{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
+                        temp_table_path = f"{temp_table}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
 
                     # Read data from S3
-                    temp_data[temp_table] = spark.read.parquet(f"{transformed_data_path}/{temp_table}")
+                    temp_data[temp_table] = spark.read.parquet(f"{transformed_data_path}/{temp_table_path}")
 
                     temp_data[temp_table].show(5)
 
@@ -1001,10 +1007,10 @@ class ExtractTransform:
                 except:
                     skip_msg = f"{temp_table} doesn't have new data. Skipped..."
                     log_msg = {
-                    "step": "staging",
-                    "process": "load",
+                    "step": "warehouse",
+                    "process": "extraction and transformation",
                     "status": "skip",
-                    "source": "db",
+                    "source": "staging",
                     "table_name": temp_table,
                     "error_msg": skip_msg,
                     "etl_date": current_timestamp
@@ -1031,7 +1037,7 @@ class ExtractTransform:
             
             # Check if DataFrame is empty
             if df.isEmpty():
-                skip_msg = f"funds doesn't have new data. Skipped..."
+                skip_msg = f"{table_names} don't have new data. Skipped..."
                 log_msg = {
                 "step": "warehouse",
                 "process": "extraction and transformation",
@@ -1047,7 +1053,7 @@ class ExtractTransform:
             # Write transformed data to parquet
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                         "step": "warehouse",
@@ -1098,7 +1104,10 @@ class ExtractTransform:
 
             # Define query for extracting data
             query = "(SELECT * FROM public.ipos) as data"
+            transformed_table_name = f"fact_{table_name}"
+            transformed_table_name_file = transformed_table_name
             if incremental:
+                transformed_table_name_file = f"{transformed_table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
                 query = f"(SELECT * FROM public.ipos WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
 
             # Read data from PostgreSQL
@@ -1181,13 +1190,10 @@ class ExtractTransform:
             df = df.withColumn('valuation_amount', col('valuation_amount').cast(DecimalType()))
             df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType()))
 
-            transformed_table_name = f"fact_{table_name}"
-
             # Write transformed data to parquet
-            df.show(5)
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",
@@ -1231,15 +1237,19 @@ class ExtractTransform:
         current_timestamp = datetime.now().replace(microsecond=0)
         try:
             table_name = "milestones"
+            transformed_table_name = f"fact_{table_name}"
             # Initialize Spark session
             spark = SparkSession.builder \
                 .appName("Extract & Transform From Staging - milestones") \
                 .getOrCreate()
 
             # Define query for extracting data
+            
             query = "(SELECT * FROM public.milestones) as data"
+            transformed_table_name_file = transformed_table_name
             if incremental:
                 query = f"(SELECT * FROM public.milestones WHERE created_at::DATE = '{date}'::DATE - INTERVAL '1 DAY') as data"
+                transformed_table_name_file = f"{transformed_table_name_file}-{(pd.to_datetime(date) - timedelta(days=1)).strftime('%Y-%m-%d')}"
 
             # Read data from PostgreSQL
             df = spark.read.jdbc(
@@ -1310,21 +1320,14 @@ class ExtractTransform:
             # Drop natural key
             df = df.drop("company_nk")
 
-
             df = df.withColumn('milestone_nk', col('milestone_nk').cast(LongType()))
             df = df.withColumn('company_id', col('company_id').cast(LongType()))
             df = df.withColumn('milestone_at', col('milestone_at').cast(IntegerType()))
-
-            transformed_table_name = f"fact_{table_name}"
             
-
-            
-
             # Write transformed data to parquet
-            df.show(5)
             df.write \
                 .mode("overwrite") \
-                .parquet(f"{transformed_data_path}/{transformed_table_name}")
+                .parquet(f"{transformed_data_path}/{transformed_table_name_file}")
             
             log_msg = {
                             "step": "warehouse",

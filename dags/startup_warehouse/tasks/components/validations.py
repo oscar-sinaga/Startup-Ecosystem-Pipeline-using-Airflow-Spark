@@ -11,19 +11,20 @@ class Validation:
     @staticmethod
     def _data_validations(incremental, table_name, tabel_pkey: str, date_cols: str = None, date = None):
         current_timestamp = datetime.now().replace(microsecond=0)
-        valid_bucket = 'invalid-data'
+        invalid_bucket = 'invalid-data'
 
         spark = SparkSession.builder \
             .appName(f"Validate {table_name}") \
             .getOrCreate()
         
         try:
-            if incremental:
-                object_name = f'{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}'
+            if incremental and table_name not in ['people','relationships']:
+                print('incremental Start')
+                table_file_name = f'{table_name}-{(pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")}'
             else:
-                object_name = f'{table_name}'
-
-            data = spark.read.parquet(f's3a://transformed-data/{object_name}')
+                table_file_name = f'{table_name}'
+            print(table_file_name)
+            data = spark.read.parquet(f's3a://transformed-data/{table_file_name}')
 
         except Exception:
             skip_msg = f"{table_name} doesn't have new data. Skipped..."
@@ -72,7 +73,7 @@ class Validation:
                 }
 
 
-            CustomMinio._put_json(report, valid_bucket, f'{table_name}-validation')
+            CustomMinio._put_json(report, invalid_bucket, f'{table_file_name}-validation')
 
             log_msg = {
                 "step": "staging",
@@ -110,10 +111,14 @@ class Validation:
 if __name__ == "__main__":
     """
     Main entry point for the script.
+    Usage:
+        python validations.py <incremental> <table_name> <tabel_pkey> <date_cols> <date>
+    Example:
+        python validations.py true company id '[created_at]' 2024-07-01
     """
     if len(sys.argv) != 6:
-        print("Usage: validations.py <table_name> <need_validation> <valid_bucket> <incremental> <invalid_bucket> <validation_type> <date>")
-        sys.exit(-1)
+        print("Usage: validations.py <incremental> <table_name> <tabel_pkey> <date_cols> <date>")
+        sys.exit(1)
 
     incremental = sys.argv[1].lower() == 'true'
     table_name = sys.argv[2]
@@ -122,9 +127,9 @@ if __name__ == "__main__":
     date = sys.argv[5]
 
     Validation._data_validations(
-        incremental,
-        table_name, 
-        tabel_pkey,
-        date_cols,
-        date
-        )
+        incremental=incremental,
+        table_name=table_name,
+        tabel_pkey=tabel_pkey,
+        date_cols=date_cols,
+        date=date
+    )
