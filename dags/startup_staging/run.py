@@ -7,13 +7,13 @@ from helper.callbacks.slack_notifier import slack_notifier
 from airflow.models.variable import Variable
 
 default_args = {
-    "owner": "Rahil",
+    "owner": "Oscar",
     "on_failure_callback": slack_notifier
 }
 
 @dag(
     dag_id="startup_staging",
-    start_date=datetime(2024, 9, 1),
+    start_date=datetime(2025, 7, 1),
     schedule="@daily",
     catchup=False,
     default_args=default_args,

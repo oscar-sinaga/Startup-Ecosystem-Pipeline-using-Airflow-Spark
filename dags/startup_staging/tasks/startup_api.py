@@ -41,7 +41,6 @@ def startup_api(incremental):
     def extract():
 
         # Get the list of tables to extract from Airflow Variable
-        # table_name = eval(Variable.get('api_table'))
         table_name = Variable.get('startup_table_api')
         source = 'startup_api'
 
@@ -67,8 +66,6 @@ def startup_api(incremental):
         Task group to handle the loading of data into startup database.
         """
         # Get the list of tables to load and their primary keys from Airflow Variable
-        # table_name = eval(Variable.get('list_startup_table'))
-        # table_pkey = eval(Variable.get('pkey_startup_table'))
         table_name = Variable.get('startup_table_api')
         table_pkey = Variable.get('pkey_startup_table_api')
         source = 'startup_api'

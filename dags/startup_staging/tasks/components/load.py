@@ -134,7 +134,6 @@ class Load:
                 if incremental:
                     print('masuk incremental')
                     # Define bucket and object name
-                    date = '2008-08-11'
                     date_before = (pd.to_datetime(date) - timedelta(days=1)).strftime("%Y-%m-%d")
                     object_name = f'/startup-api/{table_name}-{date_before}/*.csv'
 
@@ -309,16 +308,16 @@ if __name__ == "__main__":
     args = sys.argv[1:]
 
     def print_usage():
-        print("\n🔧 Usage:")
+        print("\nUsage:")
         print("  python load.py <source_type> <table_name> <table_pkey> [<incremental>] [<date>]\n")
-        print("🧪 Examples:")
+        print("  Examples:")
         print("  python load.py startup_db customers \"customer_id\" true 2025-07-11")
         print("  python load.py startup_api customer_orders_history \"[customer_id, order_id]\" 2025-07-11")
         print("  python load.py startup_spreadsheet people \"[id]\"")
         sys.exit(1)
 
     if len(args) < 3:
-        print("❌ Error: Not enough arguments.")
+        print("Error: Not enough arguments.")
         print_usage()
 
     source_type = args[0].lower()
@@ -327,8 +326,8 @@ if __name__ == "__main__":
 
     if source_type == "startup_db":
         if len(args) != 5:
-            print("❌ Error: 'startup_db' requires 5 arguments.")
-            print("➡  source_type, table_name, table_pkey, incremental, date")
+            print("Error: 'startup_db' requires 5 arguments.")
+            print("source_type, table_name, table_pkey, incremental, date")
             print_usage()
         incremental = args[3].lower() == 'true'
         date = args[4]
@@ -336,8 +335,8 @@ if __name__ == "__main__":
 
     elif source_type == "startup_api":
         if len(args) != 5:
-            print("❌ Error: 'startup_api' requires 4 arguments.")
-            print("➡  source_type, table_name, table_pkey, incremental, date")
+            print("Error: 'startup_api' requires 4 arguments.")
+            print("source_type, table_name, table_pkey, incremental, date")
             print_usage()
 
         incremental = args[3].lower() == 'true'
@@ -346,29 +345,12 @@ if __name__ == "__main__":
 
     elif source_type == "startup_spreadsheet":
         if len(args) != 3:
-            print("❌ Error: 'startup_spreadsheet' requires 3 arguments.")
-            print("➡  source_type, table_name, table_pkey")
+            print("Error: 'startup_spreadsheet' requires 3 arguments.")
+            print("source_type, table_name, table_pkey")
             print_usage()
         Load._startup_spreadsheet(table_name, table_pkey)
 
     else:
-        print(f"❌ Error: Unknown source_type '{source_type}'.")
-        print("✅ Allowed values: startup_db | startup_api | startup_spreadsheet")
+        print(f"Error: Unknown source_type '{source_type}'.")
+        print("Allowed values: startup_db | startup_api | startup_spreadsheet")
         print_usage()
-
-
-
-
-# if __name__ == "__main__":
-#     """
-#     Main entry point for the script. Loads data into startup database based on command line arguments.
-#     """
-#     if len(sys.argv) != 5:
-#         sys.exit(-1)
-
-#     table_name = sys.argv[1]
-#     table_pkey = sys.argv[2]
-#     incremental = sys.argv[3].lower() == 'true'
-#     date = sys.argv[4]
-
-#     Load._startup_db(table_name, table_pkey, incremental, date)
