@@ -321,7 +321,17 @@ Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Datab
     ```bash
     docker-compose up -d --build
     ```
-7.  **Memicu ETL Job**:
+7. **Tambahkan Connections dan Variables**
+   Tambahkan konfigurasi seperti `Connections` dan `Variables` agar proses di Airflow bisa terhubung dengan beberapa source seperti **Database PostgreSQL** ,  **Data Lake Minio** atau dengan alat preprocessing seperti **Apache Airflow** :
+   ```bash
+   docker exec -it airflow_standalone bash
+   cd dags/include
+   airflow connections import connections.yaml
+   airflow variables import variables.json
+   exit
+    ```
+
+8.  **Memicu ETL Job**:
     
     Untuk menjalankan pipeline, 
     - Buka endpoint airflow webserver di jalankan kemudian 
