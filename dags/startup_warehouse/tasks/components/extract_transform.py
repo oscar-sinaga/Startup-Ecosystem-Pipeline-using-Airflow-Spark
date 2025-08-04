@@ -613,9 +613,9 @@ class ExtractTransform:
                 'funded_at',
                 'funding_round_type',
                 'funding_round_code',
-                'raised_amount',
-                'pre_money_valuation',
-                'post_money_valuation',
+                'raised_amount_usd',
+                'pre_money_valuation_usd',
+                'post_money_valuation_usd',
                 'participants',
                 'is_first_round',
                 'is_last_round'
@@ -628,7 +628,10 @@ class ExtractTransform:
                 .withColumnRenamed('funding_round_id', 'funding_round_nk') \
                 .withColumnRenamed('participants', 'number_of_participants') \
                 .withColumnRenamed('is_first_round', 'round_position_desc') \
-                .withColumnRenamed('is_last_round', 'round_stage_desc')
+                .withColumnRenamed('is_last_round', 'round_stage_desc')\
+                .withColumnRenamed('raised_amount_usd', 'raised_amount') \
+                .withColumnRenamed('pre_money_valuation_usd', 'pre_money_valuation') \
+                .withColumnRenamed('post_money_valuation_usd', 'post_money_valuation') \
 
             # Map boolean to string
             df = df \
@@ -804,7 +807,7 @@ class ExtractTransform:
             df = df.withColumn('fund_nk', col('fund_nk').cast(LongType()))
             df = df.withColumn('company_id', col('company_id').cast(LongType()))
             df = df.withColumn('funded_at', col('funded_at').cast(IntegerType()))
-            df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType()))
+            df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType(20, 2)))
 
             # Write transformed data to parquet
             df.write \
@@ -1032,7 +1035,7 @@ class ExtractTransform:
             df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType()))
             df = df.withColumn('pre_money_valuation', col('pre_money_valuation').cast(DecimalType()))
             df = df.withColumn('post_money_valuation', col('post_money_valuation').cast(DecimalType()))
-            df = df.withColumn('number_of_participants', col('number_of_participants').cast(DecimalType()))
+            df = df.withColumn('number_of_participants', col('number_of_participants').cast(IntegerType()))
 
             
             # Check if DataFrame is empty
@@ -1187,8 +1190,8 @@ class ExtractTransform:
             df = df.withColumn('ipo_nk', col('ipo_nk').cast(LongType()))
             df = df.withColumn('company_id', col('company_id').cast(LongType()))
             df = df.withColumn('public_at', col('public_at').cast(IntegerType()))
-            df = df.withColumn('valuation_amount', col('valuation_amount').cast(DecimalType()))
-            df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType()))
+            df = df.withColumn('valuation_amount', col('valuation_amount').cast(DecimalType(20, 2)))
+            df = df.withColumn('raised_amount', col('raised_amount').cast(DecimalType(20, 2)))
 
             # Write transformed data to parquet
             df.write \
