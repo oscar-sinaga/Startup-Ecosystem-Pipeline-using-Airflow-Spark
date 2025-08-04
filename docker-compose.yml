@@ -165,6 +165,44 @@ services:
   #   networks:
   #     - airflow-networks
 
+  metabase-db:
+    image: postgres:latest
+    container_name: ${MB_DB_HOST}
+    restart: always
+    hostname: ${MB_DB_HOST}
+    ports:
+      - "5438:5432"  # External 5435 -> Internal 5432
+    environment:
+      POSTGRES_DB: ${MB_DB_DBNAME}
+      POSTGRES_USER: ${MB_DB_USER}
+      POSTGRES_PASSWORD: ${MB_DB_PASS}
+    networks:
+      - airflow-networks
+    volumes:
+      - metabase_db_data:/var/lib/postgresql/data
+      - ./metabase/data:/docker-entrypoint-initdb.d  # Mount for init scripts
+      - ./metabase/data:/var/lib/postgresql/backup 
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    restart: always
+    ports:
+      - "8083:3000"
+    env_file:
+      - .env
+    networks:
+      - airflow-networks
+    volumes:
+      - metabase_data:/metabase-data
+    depends_on:
+      - metabase-db
+    healthcheck:
+      test: curl --fail -I http://localhost:8083/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
 volumes:
   airflow_metadata:
     driver: local
@@ -193,6 +231,14 @@ volumes:
   log_db:
     driver: local
     name: log_db
+
+  metabase_db_data:
+    driver: local
+    name: metabase_db_data
+
+  metabase_data:
+    driver: local
+    name: metabase_data
 
 networks:
   airflow-networks:

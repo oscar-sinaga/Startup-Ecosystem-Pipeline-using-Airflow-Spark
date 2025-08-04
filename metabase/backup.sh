@@ -1,0 +1,1 @@
+docker exec -t metabase-db pg_dump -U metabase_user -F p metabase_db > data/metabase_backup.sql
