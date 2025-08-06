@@ -31,7 +31,6 @@ Sebuah data pipeline end-to-end untuk mengintegrasikan, memproses, dan menganali
     - [Warehouse Layer](#warehouse-layer)
   - [Teknologi yang Digunakan](#teknologi-yang-digunakan)
   - [Cara Menjalankan Pipeline](#cara-menjalankan-pipeline)
-  - [Hasil yang Diharapkan dari Setiap Analisis](#hasil-yang-diharapkan-dari-setiap-analisis)
 
 ## Requirements Gathering & Solution
 
@@ -41,7 +40,7 @@ Perusahaan **"VenturePulse"** adalah perusahaan konsultan investasi yang mempuny
 #### 1. Ketidakmampuan Mengevaluasi Momentum Pertumbuhan Secara Akurat
 
 - **Kondisi:** Data pendanaan (`funding_rounds`, `investments`, `funds`) dan pencapaian (`milestones`) tersedia dari berbagai sumber, namun belum dihubungkan secara eksplisit dalam model analitik.
-- **Masalah:** Sulit untuk menilai dampak langsung dari pendanaan terhadap pertumbuhan startup. Pertanyaan seperti “apakah pendanaan Seri B mendorong peluncuran produk utama?” tidak dapat dijawab secara langsung karena tidak adanya keterkaitan yang jelas antara waktu, sumber dana, dan pencapaian bisnis.
+- **Masalah:** Sulit untuk menilai dampak dari pendanaan terhadap pertumbuhan startup secara langsung. Pertanyaan seperti “apakah pendanaan Seri B mendorong peluncuran produk utama?” tidak dapat dijawab secara langsung karena tidak adanya keterkaitan yang jelas antara waktu, sumber dana, dan pencapaian bisnis.
 
 **Tabel kunci:**
 - `funding_rounds`, `investments`, `funds`, `milestones`
@@ -60,7 +59,7 @@ Perusahaan **"VenturePulse"** adalah perusahaan konsultan investasi yang mempuny
 
 #### 3. Keterbatasan dalam Pemetaan Jaringan Modal Manusia
 
-- **Kondisi:** Data `relationships` yang menghubungkan individu ke perusahaan tersedia, dan pencapaian perusahaan (`milestones`) juga tersedia, namun belum terintegrasi dalam satu model analitik untuk pelacakan karier dan inovasi.
+- **Kondisi:** Data `relationships` yang menghubungkan individu ke perusahaan tersedia, dan pencapaian perusahaan (`milestones`) juga tersedia, namun belum terintegrasi dalam satu sumber terpusat agar pelacakan karier dan inovasi mudah dan dapat dihubungkan dengan berbagai data lain.
 - **Masalah:** Sulit melacak jejak kontribusi individu terhadap pertumbuhan dan inovasi lintas perusahaan. Visualisasi jaringan atau analisis dampak modal manusia terhadap performa startup tidak dapat dilakukan secara utuh karena keterbatasan keterkaitan antara individu, peran, dan hasil nyata yang dicapai.
 
 **Tabel kunci:**
@@ -69,7 +68,7 @@ Perusahaan **"VenturePulse"** adalah perusahaan konsultan investasi yang mempuny
 
 ### Solusi yang Diusulkan (Proposed Solution)
 
-Oleh karena itu perlu dibangun **Data Pipeline Terpusat** yang mengotomatisasi proses pengumpulan, pembersihan, transformasi, dan pemuatan data dari berbagai sumber ke dalam sebuah **Data Warehouse** tunggal.
+Oleh karena itu perlu dibangun **Data Pipeline Terpusat** yang mengotomatisasi proses pengumpulan, pembersihan, transformasi, dan penyimpanan data dari berbagai sumber ke dalam sebuah **Data Warehouse** tunggal.
 
 Tujuannya adalah menyediakan data yang andal, terintegrasi, dan siap pakai untuk analisis strategis tanpa intervensi manual berlebihan.
 
@@ -84,7 +83,7 @@ Banyak kolom krusial untuk analisis bisnis memiliki persentase *missing values* 
 * **Dampak pada Analisis Pendanaan & Exit:**
     * Pada tabel `funding_rounds`, data valuasi sangat tidak lengkap, dengan **48.1%** nilai hilang pada `pre_money_currency_code` dan **41.63%** pada `post_money_currency_code`.
     * Pada tabel `acquisitions`, **81.67%** data `term_code` (tipe akuisisi: cash/stock) hilang.
-    * **Implikasi:** Tanpa data ini, **mustahil** untuk mengevaluasi kinerja pendanaan atau menganalisis strategi *exit* secara komprehensif. Proses ETL harus menerapkan strategi untuk menangani nilai-nilai yang hilang ini sebelum memuatnya ke `fact_investment_round_participation` dan `fact_acquisitions`. 
+    * **Implikasi:** Tanpa data ini `pre_money_currency_code` dan`post_money_currency_code` analisis yang terkait dengan amount **mustahil** untuk untuk mengevaluasi kinerja pendanaan atau menganalisis strategi *exit* secara komprehensif jika tiap amount bergantung sama uangnya. Proses ETL harus menerapkan strategi untuk menangani nilai-nilai yang hilang ini sebelum memuatnya ke `fact_investment_round_participation` dan `fact_acquisitions`. 
       * Pada tabel `funding_rounds`, kolom  `post_money_currency_code` dan `pre_money_currency_code` akan kita drop karena kolom `pre_money_valuation_usd` dan kolom `post_money_valuation_usd` datanya tidak kosong dan sudah dalam usd sehingga tidak perlukan lagi kedua kolom mata tersebut.
       * Pada tabel `acquisitions` kolom `term_code` akan diisi `Unknown` untuk data yang hilang
 
@@ -95,12 +94,12 @@ Banyak kolom krusial untuk analisis bisnis memiliki persentase *missing values* 
 
 * **Dampak pada Analisis Geografis:**
     * Informasi lokasi pada tabel `company` juga tidak lengkap, seperti `state_code` (**42.36%** hilang) dan `city` (**4.59%** hilang).
-    * **Implikasi:** Analisis berbasis lokasi menjadi kurang andal. Kolom-kolom ini perlu dibersihkan sebelum dimuat ke `dim_company`.
+    * **Implikasi:** Analisis berbasis lokasi menjadi kurang andal.
 
 **2. Integritas dan Format Data yang Belum Standar**
 
 * **Tipe Data Tanggal:** Sebagian besar kolom tanggal di berbagai tabel (`funding_rounds.funded_at`, `acquisitions.acquired_at`, `relationship.start_at`) ditemukan sebagai tipe data `object` (string), bukan `datetime`.
-* **Implikasi:** Ini menyebabkan semua bentuk analisis berbasis waktu (tren, durasi, dsb.) terhambat. Oleh karena itu semua kolom tanggal harus dikonversi ke format `YYYYMMDD` sebagai *foreign key* ke `dim_date`.
+* **Implikasi:** Ini menyebabkan semua bentuk analisis berbasis waktu (tren, durasi, dsb.) terhambat. Oleh karena itu semua kolom tanggal harus dikonversi ke format `YYYYMMDD` sebagai *foreign key* ke `date_id` dari tabel `dim_date`.
 
 ### Desain Arsitektur Pipeline
 
@@ -112,10 +111,17 @@ Pipeline terdiri dari beberapa komponen utama:
   - **Warehouse Layer:** Menyimpan data terstruktur yang sudah ditransformasi dalam schema `warehouse` berbasis Star Schema.
 
 - **Logging & Monitoring:**
-  - Informasi setiap proses ETL akan dicatat dalam database log **PosgreSQL**.  
+  - Informasi setiap proses ETL akan dicatat dalam database log **PosgreSQL**.
 
-- **Validation & Error Handling:**
-  - Report hasil validasi akan disimpan di **Minio**.
+- **Orchestration and Schedulling**
+  - Semua Proses ETL dijalankan dan dijadwalkan oleh sebuah tools orkestrasi **Apache Airflow**   
+
+- **Temporary Data and Validation**
+  - Setiap temporary data antara proses extract dan load disimpan dalam bucket-bucket di data lake **Minio** dalam bentuk **csv** dan **parquet**.
+  - Data invalid juga akan disimpan dalam data lake **Minio**.
+
+- **Error Alert**
+  - Setiap error dalam proses dag akan dikirimkan ke **Slack** 
 
 ![Pipeline Design](picture/data_pipeline_workflow.drawio.png)
 
@@ -131,12 +137,15 @@ Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan start
 
 #### Tabel Fakta:
 - **`fact_investment_round_participation`**
-  - **Grain:** Satu baris mewakili satu partisipasi unik perusahaan investor dalam satu putaran pendanaan.
+  - **Grain:**  Satu baris mewakili satu keterlibatan unik investor dalam satu putaran pendanaan untuk sebuah perusahaan, termasuk informasi nilai investasi (jika ada), posisi dalam ronde, dan tahap investasi.
   - **Peran:** Tabel paling krusial untuk analisis pendanaan. Tabel ini memungkinkan analisis jaringan co-investor dan menjawab pertanyaan seperti "siapa berinvestasi bersama siapa?"
 
 - **`fact_funds`**
-  - **Grain:** Satu baris per peristiwa penerimaan dana non-formal oleh sebuah perusahaan.
-  - **Peran:** Melengkapi total modal yang diterima perusahaan di luar funding round formal.
+  - **Grain:** Satu baris merepresentasikan satu fund (dana kelolaan) yang berhasil dikumpulkan oleh investor pada waktu tertentu.
+  - **Peran:** Tabel ini mencatat detail fund (dana kelolaan) dari investor (misal VC/PE) yang akan digunakan untuk berinvestasi dalam berbagai startup. Tabel ini berguna untuk:
+    - Menganalisis kapasitas pendanaan suatu investor (misalnya: total fund yang pernah dikumpulkan),
+    - Melacak pertumbuhan dan sejarah aktivitas pengumpulan dana,
+    - Memahami hubungan antara pendanaan investor dan aktivitas investasi mereka di startup (melalui join ke fact_investment_round_participation atau entitas investor).
 
 - **`fact_milestones`**
   - **Grain:** Satu baris per pencapaian milestone spesifik.
@@ -235,7 +244,7 @@ Pemetaan source-to-target disediakan dalam dokumen terpisah ya [source_to_target
 2. **Load:** Data yang sudah ditarik dari berbagai sumber oleh Pyspark ke **Minio** kemudian akan disimpan ke **Database Staging** PostgreSQL.  
 
 ### Warehouse Layer
-1. **Extract dan Transform:** Data raw yang sudah disimpan di *Database Staging** kemudian diextract dan ditransform oleh pyspark. Proses Transformasi mencakup:
+1. **Extract dan Transform:** Data raw yang sudah disimpan di **Database Staging** kemudian diextract dan ditransform oleh pyspark. Proses Transformasi mencakup:
    - Pembersihan data (null, duplikat)
    - Standarisasi format
    - Enrichment kolom
@@ -248,7 +257,7 @@ Pemetaan source-to-target disediakan dalam dokumen terpisah ya [source_to_target
 3. **Load:** 
 Setelah divalidasi, data yang disimpan sementara di **Minio** kemudian di-load ke **Database Warehoyse** PostgreSQL :
 
-Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Database Log**. Alur ETL setiap layer ini diorkestrasi dengan **Airflow**
+Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Database Log**. Alur ETL setiap layer ini diorkestrasi dengan **Airflow**. Jika ada Error yang terjadi pada suatu proses maka informasi errornya akan dikirim ke akun **Slack**. Data-Data akhir yang sudah ditransformasi dan disimpan database warehouse kemudian dapat divisualisasi dalam bentuk dashboard di **Metabase**. 
 
 ## Teknologi yang Digunakan
 
@@ -256,9 +265,11 @@ Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Datab
 - **Engine Pemrosesan:** Apache Spark (via PySpark)
 - **Orcrhestation:** Apache Airflow
 - **Penyimpanan:**
-  - PostgreSQL (Staging & Warehouse)
-  - Minio (data Sementara hasil extract dan data hasil validasi)
+  - PostgreSQL sebagai tools **database** (Staging & Warehouse)
+  - Minio sebagai tools **data lake** (data Sementara hasil extract dan data hasil validasi)
 - **Containerization:** Docker Image, Docker Compose
+- **Visualization and Dashboard** : Metabase
+- **Alerting** : Slack
 
 ## Cara Menjalankan Pipeline
 
@@ -305,6 +316,16 @@ Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Datab
 
     MINIO_ROOT_USER=minio
     MINIO_ROOT_PASSWORD=minio123
+
+    MB_DB_TYPE=postgres
+    MB_DB_DBNAME=metabase_db
+    MB_DB_PORT=5432  # Ensure this matches PostgreSQL service
+    MB_DB_USER=metabase_user
+    MB_DB_PASS=metabase_pass
+    MB_DB_HOST=metabase-db  # This should match the service name in docker-compose
+
+    MB_ADMIN_EMAIL=admin@example.com
+    MB_ADMIN_PASSWORD=admin123456
     ```
 
 4. **Create Spredsheet Credentials**
@@ -334,24 +355,16 @@ Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Datab
 8.  **Memicu ETL Job**:
     
     Untuk menjalankan pipeline, 
-    - Buka endpoint airflow webserver di jalankan kemudian 
+    - Buka endpoint **Airflow webserver** --> `localhost:8082` (sesuaikan dengan port airflow webserver)
     - Login ke airflow menggunakan username dan password yang diambil dari log container **airflow**: 
       ![log_airflow_standalone](picture/log_airflow_standalone.png)
     - kemudian jalankan salah satu dag seperti berikut:
       ![how_run_dag](picture/how_run_dag.png)
 
-## Hasil yang Diharapkan dari Setiap Analisis
+9. **Membuat Dashboard**
+    Untuk membuat dashboard atau visualisasi
+    - Buka endpoint **Metabase** --> `localhost:8003` (sesuaikan dengan port metabase)
+    - Isi username/email dan password (sesuai dengan yang sudah dikonfigurasi di `.env`)
+    - Mulai membuat visualisasi dan dashboard. Contoh dashboard:
+  ![contoh_dashboard_metabase](picture/contoh_dashboard_metabase.png) 
 
-Setelah pipeline berjalan dan data warehouse terisi, tim analis VenturePulse akan mampu menjawab pertanyaan-pertanyaan strategis dengan cepat:
-
-* **Untuk Evaluasi Pendanaan & Pertumbuhan:**
-    * Membuat dashboard interaktif yang menampilkan tren pendanaan (QoQ, YoY) berdasarkan sektor dan geografi.
-    * Menganalisis korelasi langsung antara peristiwa pendanaan dengan peluncuran produk atau *milestone* penting lainnya.
-
-* **Untuk Analisis Strategi Exit:**
-    * Menghasilkan laporan yang membandingkan valuasi dan frekuensi IPO vs. Akuisisi di berbagai industri.
-    * Mengidentifikasi profil pendiri atau karakteristik perusahaan yang paling sering berujung pada *exit* yang sukses.
-
-* **Untuk Pemetaan Ekosistem:**
-    * Membuat visualisasi jaringan yang memetakan hubungan "investor-perusahaan-pendiri".
-    * Mengidentifikasi pemain kunci dan "super-connectors" dalam ekosistem startup.
