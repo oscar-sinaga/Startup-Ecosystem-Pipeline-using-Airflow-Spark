@@ -16,13 +16,16 @@ Sebuah data pipeline end-to-end untuk mengintegrasikan, memproses, dan menganali
   - [Desain Target Database (Data Warehouse)](#desain-target-database-data-warehouse)
     - [🧭 Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup](#-proses-bisnis-1-evaluasi-perjalanan-pendanaan-dan-pertumbuhan-startup)
       - [Tabel Fakta:](#tabel-fakta)
-      - [Tabel Dimensi:](#tabel-dimensi)
     - [🚀 Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup](#-proses-bisnis-2-analisis-strategi-exit-dan-kinerja-pasar-startup)
-      - [Tabel Fakta:](#tabel-fakta-1)
-      - [Tabel Dimensi:](#tabel-dimensi-1)
+    - [📊 Tabel Fakta](#-tabel-fakta)
+      - [**`fact_acquisition`**](#fact_acquisition)
+      - [**`fact_ipos`**](#fact_ipos)
+    - [🧩 Tabel Dimensi](#-tabel-dimensi)
+      - [**`dim_company`**](#dim_company)
+      - [**`dim_date`**](#dim_date)
     - [🌐 Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup](#-proses-bisnis-3-pemetaan-ekosistem-dan-jaringan-penggerak-startup)
-      - [Tabel Fakta:](#tabel-fakta-2)
-      - [Tabel Dimensi:](#tabel-dimensi-2)
+      - [Tabel Fakta:](#tabel-fakta-1)
+      - [Tabel Dimensi:](#tabel-dimensi)
     - [🧾 Ringkasan Final Desain Data Warehouse](#-ringkasan-final-desain-data-warehouse)
       - [✅ Tabel Dimensi (Memberikan Konteks "Siapa, Apa, Di Mana, Kapan")](#-tabel-dimensi-memberikan-konteks-siapa-apa-di-mana-kapan)
       - [📊 Tabel Fakta (Perekam Peristiwa \& Ukuran Bisnis)](#-tabel-fakta-perekam-peristiwa--ukuran-bisnis)
@@ -141,6 +144,7 @@ Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan start
   - **Peran:** Tabel paling krusial untuk analisis pendanaan. Tabel ini memungkinkan analisis jaringan co-investor dan menjawab pertanyaan seperti "siapa berinvestasi bersama siapa?"
 
 - **`fact_funds`**
+  
   - **Grain:** Satu baris merepresentasikan satu fund (dana kelolaan) yang berhasil dikumpulkan oleh investor pada waktu tertentu.
   - **Peran:** Tabel ini mencatat detail fund (dana kelolaan) dari investor (misal VC/PE) yang akan digunakan untuk berinvestasi dalam berbagai startup. Tabel ini berguna untuk:
     - Menganalisis kapasitas pendanaan suatu investor (misalnya: total fund yang pernah dikumpulkan),
@@ -148,13 +152,24 @@ Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan start
     - Memahami hubungan antara pendanaan investor dan aktivitas investasi mereka di startup (melalui join ke fact_investment_round_participation atau entitas investor).
 
 - **`fact_milestones`**
-  - **Grain:** Satu baris per pencapaian milestone spesifik.
-  - **Peran:** Memberikan konteks kualitatif terhadap angka pendanaan dan menjawab "mengapa" perusahaan dianggap layak menerima investasi.
+  
+  - **Grain:** 
+    Satu baris merepresentasikan satu peristiwa milestone unik (misalnya peluncuran produk, akuisisi, kerja sama, fundraising) yang terjadi pada satu perusahaan, pada satu tanggal tertentu.
 
-#### Tabel Dimensi:
+  - **Peran:**
+    Menyediakan informasi naratif dan temporal tentang pencapaian atau aktivitas penting perusahaan yang tidak tercermin langsung dalam angka pendanaan formal. Tabel ini berguna untuk:
+      - Memberikan konteks kualitatif terhadap peristiwa pendanaan, akuisisi, atau IPO
+      - Menjawab pertanyaan "mengapa" dan "apa yang terjadi sebelumnya"
+      - Melacak perkembangan strategis perusahaan dari waktu ke waktu
+
+
 - **`dim_company`**
-  - **Peran:** Dimensi konform yang mewakili perusahaan, berperan ganda sebagai investee dan investor.
-  - **Grain:** Satu baris per perusahaan.
+  - **Grain:**
+    Satu baris merepresentasikan satu entitas perusahaan unik.
+
+  - **Peran:**
+    Dimensi konform yang menyimpan informasi deskriptif dan geografis perusahaan, digunakan dalam berbagai konteks analitis seperti pendanaan, akuisisi, IPO, dan milestone. Tabel ini mendukung analisis lintas domain dengan menjaga konsistensi identitas perusahaan di seluruh data warehouse.
+
 
 - **`dim_date`**
   - **Peran:** memberikan kerangka waktu untuk seluruh analisis tren pendanaan.
@@ -164,39 +179,76 @@ Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan start
 
 ### 🚀 Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup
 
-Fokus: Menganalisis peristiwa puncak seperti akuisisi dan IPO dalam siklus hidup startup.
+**Fokus:**  
+Menganalisis peristiwa puncak seperti akuisisi dan IPO dalam siklus hidup startup, serta mengevaluasi nilai dan waktu exit sebagai bagian dari strategi investasi.
 
-#### Tabel Fakta:
-- **`fact_acquisitions`**
-  - **Grain:** Satu baris per peristiwa akuisisi.
-  - **Peran:** Merekam volume dan nilai M&A sebagai indikator likuiditas pasar startup.
 
-- **`fact_ipos`**
-  - **Grain:** Satu baris per peristiwa IPO.
-  - **Peran:** Mengukur jalur exit alternatif melalui pasar publik dan memungkinkan perbandingan antar strategi exit.
+### 📊 Tabel Fakta
 
-#### Tabel Dimensi:
-- **`dim_company`**
-  - **Peran:** Memainkan banyak peran sebagai pengakuisisi, yang diakuisisi, dan perusahaan yang IPO.
-  - **Grain:** Satu baris per perusahaan.
+#### **`fact_acquisition`**
+* **Grain:**  
+  Satu baris mewakili satu peristiwa akuisisi unik, yang didefinisikan secara unik oleh `acquisition_nk`.  
+  Setiap baris menghubungkan:
+  - Perusahaan pengakuisisi (`acquiring_company_id`)
+  - Perusahaan yang diakuisisi (`acquired_company_id`)
+  - Tanggal akuisisi (`acquired_at` / foreign key ke `dim_date`)
 
-- **`dim_date`**
-  - **Peran:** Memungkinkan analisis tren exit dari waktu ke waktu.
-  - **Grain:** Satu baris per hari.
+* **Peran:**
+  - Merekam volume dan nilai akuisisi sebagai indikator likuiditas pasar startup.
+  - Menyediakan dasar analisis untuk tren akuisisi lintas waktu, wilayah, industri, atau ukuran valuasi.
+  - Memungkinkan analisis strategi exit startup melalui jalur M&A.
 
----
+
+#### **`fact_ipos`**
+* **Grain:**  
+  Satu baris mewakili satu peristiwa IPO unik, yang didefinisikan oleh `ipo_nk`.  
+  Setiap baris terkait ke:
+  - Perusahaan yang IPO (`company_id`)
+  - Tanggal IPO (`public_at` / foreign key ke `dim_date`)
+
+* **Peran:**
+  - Mengukur jalur exit melalui pasar publik.
+  - Menyediakan data valuasi dan dana yang dihimpun saat IPO.
+  - Memungkinkan perbandingan antara strategi IPO vs akuisisi untuk startup.
+  - Dapat digunakan untuk mengukur return investor jika dikombinasikan dengan data putaran pendanaan sebelumnya.
+
+
+### 🧩 Tabel Dimensi
+
+#### **`dim_company`**
+* **Grain:**  
+  Satu baris mewakili satu entitas perusahaan unik, didefinisikan oleh surrogate key `company_id` dan natural key `company_nk`.
+
+* **Peran:**
+  - Menjadi referensi deskriptif bagi perusahaan yang:
+    - Melakukan akuisisi (`acquiring_company_id`)
+    - Diakuisisi (`acquired_company_id`)
+    - Melakukan IPO (`company_id` di `fact_ipos`)
+  - Menyediakan informasi lokasi, region, dan metadata geografis untuk analisis spasial.
+  - Memungkinkan segmentasi berdasarkan wilayah, negara, atau kota.
+
+
+#### **`dim_date`**
+* **Grain:**  
+  Satu baris mewakili satu hari kalender unik, diidentifikasi oleh `date_id`.
+
+* **Peran:**
+  - Memberikan kerangka waktu untuk menganalisis tren exit startup dari waktu ke waktu.
+  - Memungkinkan agregasi berdasarkan minggu, bulan, kuartal, atau tahun.
+  - Mendukung visualisasi tren musiman atau longitudinal terhadap aktivitas akuisisi dan IPO.
+
 
 ### 🌐 Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup
 
 Fokus: Memetakan kontribusi individu dan relasi dalam pertumbuhan ekosistem startup.
 
 #### Tabel Fakta:
-- **`fact_person_company_relationship`**
+- **`fact_relationsip`**
   - **Grain:** Satu baris per hubungan kerja spesifik antara seorang individu dan perusahaan.
   - **Peran:** Sumber utama pemetaan modal manusia, sangat penting untuk pelacakan karier dan analisis jaringan profesional.
 
 - **`fact_milestones`**
-  - **Grain:** Satu baris per peristiwa milestone spesifik.
+  - **Grain:** Satu baris merepresentasikan satu peristiwa atau pencapaian (milestone) spesifik yang terkait dengan sebuah perusahaan.
   - **Peran:** Memetakan hasil kerja dan bukti inovasi individu/perusahaan. Dapat digunakan untuk mengidentifikasi wilayah dengan frekuensi inovasi tinggi.
 
 #### Tabel Dimensi:
