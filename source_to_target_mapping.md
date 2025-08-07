@@ -44,9 +44,9 @@
 | funded_at              | date        | funded_at              | int              | Formatted to YYYYMMDD and FK to dim_date.date_id |
 | funding_round_type     | varchar (255)        | funding_round_type     | varchar (255)             | Direct Mapping                              |
 | funding_round_code     | varchar (255)        | funding_round_code     | varchar (255)             | Direct Mapping                              |
-| raised_amount      | numeric(15,2)     | raised_amount      | numeric(15,2)          | Direct Mapping                              |
-| pre_money_valuation| numeric(15,2)     | pre_money_valuation| numeric(15,2)          | Direct Mapping                              |
-| post_money_valuation| numeric(15,2)    | post_money_valuation| numeric(15,2)         | Direct Mapping                              |
+| raised_amount_usd      | numeric(15,2)     | raised_amount      | numeric(15,2)          | Direct Mapping                              |
+| pre_money_valuation_usd| numeric(15,2)     | pre_money_valuation| numeric(15,2)          | Direct Mapping                              |
+| post_money_valuation_usd| numeric(15,2)    | post_money_valuation| numeric(15,2)         | Direct Mapping                              |
 | participants| text    | number_of_participants| numeric(15,2)         | Renamed and  Direct Mapping                              |
 | is_first_round         | boolean     | round_position_desc         | varchar(50)          | TRUE → 'First Round', FALSE → 'Not First Round'                              |
 | is_last_round          | boolean     | round_stage_desc          | varchar(50)          | TRUE → 'Last Round', FALSE → 'Ongoing Round'                              |
@@ -108,7 +108,7 @@
 | description          | text        | description        | text             | Direct Mapping                         |
 | milestone_code       | text        | milestone_code     | varcharb(255)             | Direct Mapping                         |
 
-## 📄 Source Table: `relationship` → Target Table: `fact_relationship`
+## 📄 Source Table: `relationship` → Target Table: `fact_relationships`
 
 | Source Column       | Source Type | Target Column       | Target Type     | Description                      |
 |--------------------|-------------|----------------------|------------------|----------------------------------|
