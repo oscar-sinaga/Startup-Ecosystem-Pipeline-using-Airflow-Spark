@@ -14,26 +14,27 @@ Sebuah data pipeline end-to-end untuk mengintegrasikan, memproses, dan menganali
     - [Profiling Data](#profiling-data)
     - [Desain Arsitektur Pipeline](#desain-arsitektur-pipeline)
   - [Desain Target Database (Data Warehouse)](#desain-target-database-data-warehouse)
-    - [🧭 Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup](#-proses-bisnis-1-evaluasi-perjalanan-pendanaan-dan-pertumbuhan-startup)
+    - [Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup](#proses-bisnis-1-evaluasi-perjalanan-pendanaan-dan-pertumbuhan-startup)
       - [Tabel Fakta:](#tabel-fakta)
-    - [🚀 Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup](#-proses-bisnis-2-analisis-strategi-exit-dan-kinerja-pasar-startup)
-    - [📊 Tabel Fakta](#-tabel-fakta)
-      - [**`fact_acquisition`**](#fact_acquisition)
-      - [**`fact_ipos`**](#fact_ipos)
-    - [🧩 Tabel Dimensi](#-tabel-dimensi)
-      - [**`dim_company`**](#dim_company)
-      - [**`dim_date`**](#dim_date)
-    - [🌐 Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup](#-proses-bisnis-3-pemetaan-ekosistem-dan-jaringan-penggerak-startup)
-      - [Tabel Fakta:](#tabel-fakta-1)
-      - [Tabel Dimensi:](#tabel-dimensi)
-    - [🧾 Ringkasan Final Desain Data Warehouse](#-ringkasan-final-desain-data-warehouse)
-      - [✅ Tabel Dimensi (Memberikan Konteks "Siapa, Apa, Di Mana, Kapan")](#-tabel-dimensi-memberikan-konteks-siapa-apa-di-mana-kapan)
-      - [📊 Tabel Fakta (Perekam Peristiwa \& Ukuran Bisnis)](#-tabel-fakta-perekam-peristiwa--ukuran-bisnis)
+    - [Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup](#proses-bisnis-2-analisis-strategi-exit-dan-kinerja-pasar-startup)
+      - [Tabel Fakta](#tabel-fakta-1)
+        - [**`fact_acquisition`**](#fact_acquisition)
+        - [**`fact_ipos`**](#fact_ipos)
+      - [Tabel Dimensi](#tabel-dimensi)
+        - [**`dim_company`**](#dim_company)
+        - [**`dim_date`**](#dim_date)
+    - [Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup](#proses-bisnis-3-pemetaan-ekosistem-dan-jaringan-penggerak-startup)
+      - [Tabel Fakta:](#tabel-fakta-2)
+      - [Tabel Dimensi:](#tabel-dimensi-1)
+    - [Ringkasan Final Desain Data Warehouse](#ringkasan-final-desain-data-warehouse)
+      - [Tabel Dimensi – Memberikan Konteks *Siapa, Apa, Di Mana, Kapan*](#tabel-dimensi--memberikan-konteks-siapa-apa-di-mana-kapan)
+      - [Tabel Fakta – Perekam Peristiwa \& Ukuran Bisnis](#tabel-fakta--perekam-peristiwa--ukuran-bisnis)
   - [Desain Alur Kerja ETL](#desain-alur-kerja-etl)
     - [Staging Layer](#staging-layer)
     - [Warehouse Layer](#warehouse-layer)
   - [Teknologi yang Digunakan](#teknologi-yang-digunakan)
   - [Cara Menjalankan Pipeline](#cara-menjalankan-pipeline)
+
 
 ## Requirements Gathering & Solution
 
@@ -134,7 +135,7 @@ Struktur data warehouse dirancang berdasarkan prinsip **Kimball** menggunakan pe
 
 ---
 
-### 🧭 Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup
+### Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup
 
 Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan startup.
 
@@ -148,8 +149,7 @@ Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan start
   - **Grain:** Satu baris merepresentasikan satu fund (dana kelolaan) yang berhasil dikumpulkan oleh investor pada waktu tertentu.
   - **Peran:** Tabel ini mencatat detail fund (dana kelolaan) dari investor (misal VC/PE) yang akan digunakan untuk berinvestasi dalam berbagai startup. Tabel ini berguna untuk:
     - Menganalisis kapasitas pendanaan suatu investor (misalnya: total fund yang pernah dikumpulkan),
-    - Melacak pertumbuhan dan sejarah aktivitas pengumpulan dana,
-    - Memahami hubungan antara pendanaan investor dan aktivitas investasi mereka di startup (melalui join ke fact_investment_round_participation atau entitas investor).
+    - Melacak pertumbuhan dan sejarah aktivitas pengumpulan dana
 
 - **`fact_milestones`**
   
@@ -157,54 +157,42 @@ Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan start
     Satu baris merepresentasikan satu peristiwa milestone unik (misalnya peluncuran produk, akuisisi, kerja sama, fundraising) yang terjadi pada satu perusahaan, pada satu tanggal tertentu.
 
   - **Peran:**
-    Menyediakan informasi naratif dan temporal tentang pencapaian atau aktivitas penting perusahaan yang tidak tercermin langsung dalam angka pendanaan formal. Tabel ini berguna untuk:
-      - Memberikan konteks kualitatif terhadap peristiwa pendanaan, akuisisi, atau IPO
-      - Menjawab pertanyaan "mengapa" dan "apa yang terjadi sebelumnya"
-      - Melacak perkembangan strategis perusahaan dari waktu ke waktu
-
+    Menyediakan informasi naratif dan temporal tentang pencapaian atau aktivitas penting perusahaan yang tidak tercermin langsung dalam angka pendanaan formal.
 
 - **`dim_company`**
   - **Grain:**
     Satu baris merepresentasikan satu entitas perusahaan unik.
 
   - **Peran:**
-    Dimensi konform yang menyimpan informasi deskriptif dan geografis perusahaan, digunakan dalam berbagai konteks analitis seperti pendanaan, akuisisi, IPO, dan milestone. Tabel ini mendukung analisis lintas domain dengan menjaga konsistensi identitas perusahaan di seluruh data warehouse.
+    Menyediakan informasi deskriptif dan geografis perusahaan yang mendukung analisis lintas domain.
 
 
 - **`dim_date`**
-  - **Peran:** memberikan kerangka waktu untuk seluruh analisis tren pendanaan.
   - **Grain:** Satu baris per hari kalender.
+  - **Peran:** memberikan kerangka waktu untuk seluruh analisis tren pendanaan.
 
 ---
 
-### 🚀 Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup
+### Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup
 
 **Fokus:**  
 Menganalisis peristiwa puncak seperti akuisisi dan IPO dalam siklus hidup startup, serta mengevaluasi nilai dan waktu exit sebagai bagian dari strategi investasi.
 
 
-### 📊 Tabel Fakta
+### Tabel Fakta
 
 #### **`fact_acquisition`**
 * **Grain:**  
-  Satu baris mewakili satu peristiwa akuisisi unik, yang didefinisikan secara unik oleh `acquisition_nk`.  
-  Setiap baris menghubungkan:
-  - Perusahaan pengakuisisi (`acquiring_company_id`)
-  - Perusahaan yang diakuisisi (`acquired_company_id`)
-  - Tanggal akuisisi (`acquired_at` / foreign key ke `dim_date`)
+  Satu baris mewakili satu peristiwa akuisisi unik yang menghubungkan perusahaan pengakuisisi, perusahaan yang diakuisisi dan tanggal akuisisi.
 
 * **Peran:**
   - Merekam volume dan nilai akuisisi sebagai indikator likuiditas pasar startup.
   - Menyediakan dasar analisis untuk tren akuisisi lintas waktu, wilayah, industri, atau ukuran valuasi.
-  - Memungkinkan analisis strategi exit startup melalui jalur M&A.
 
 
 #### **`fact_ipos`**
 * **Grain:**  
-  Satu baris mewakili satu peristiwa IPO unik, yang didefinisikan oleh `ipo_nk`.  
-  Setiap baris terkait ke:
-  - Perusahaan yang IPO (`company_id`)
-  - Tanggal IPO (`public_at` / foreign key ke `dim_date`)
+  Satu baris mewakili satu peristiwa IPO unik, yang terkait ke perusahaan yang IPO dan tanggal IPO.
 
 * **Peran:**
   - Mengukur jalur exit melalui pasar publik.
@@ -213,32 +201,32 @@ Menganalisis peristiwa puncak seperti akuisisi dan IPO dalam siklus hidup startu
   - Dapat digunakan untuk mengukur return investor jika dikombinasikan dengan data putaran pendanaan sebelumnya.
 
 
-### 🧩 Tabel Dimensi
+### Tabel Dimensi
 
 #### **`dim_company`**
 * **Grain:**  
-  Satu baris mewakili satu entitas perusahaan unik, didefinisikan oleh surrogate key `company_id` dan natural key `company_nk`.
+  Satu baris mewakili satu entitas perusahaan unik.
 
 * **Peran:**
   - Menjadi referensi deskriptif bagi perusahaan yang:
-    - Melakukan akuisisi (`acquiring_company_id`)
-    - Diakuisisi (`acquired_company_id`)
-    - Melakukan IPO (`company_id` di `fact_ipos`)
+    - Melakukan akuisisi
+    - Diakuisisi
+    - Melakukan IPO
   - Menyediakan informasi lokasi, region, dan metadata geografis untuk analisis spasial.
   - Memungkinkan segmentasi berdasarkan wilayah, negara, atau kota.
 
 
 #### **`dim_date`**
 * **Grain:**  
-  Satu baris mewakili satu hari kalender unik, diidentifikasi oleh `date_id`.
+  Satu baris mewakili satu hari kalender unik.
 
 * **Peran:**
   - Memberikan kerangka waktu untuk menganalisis tren exit startup dari waktu ke waktu.
   - Memungkinkan agregasi berdasarkan minggu, bulan, kuartal, atau tahun.
-  - Mendukung visualisasi tren musiman atau longitudinal terhadap aktivitas akuisisi dan IPO.
+  - Mendukung visualisasi tren musiman terhadap aktivitas akuisisi dan IPO.
 
 
-### 🌐 Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup
+### Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup
 
 Fokus: Memetakan kontribusi individu dan relasi dalam pertumbuhan ekosistem startup.
 
@@ -266,28 +254,34 @@ Fokus: Memetakan kontribusi individu dan relasi dalam pertumbuhan ekosistem star
 
 ---
 
-### 🧾 Ringkasan Final Desain Data Warehouse
-
-#### ✅ Tabel Dimensi (Memberikan Konteks "Siapa, Apa, Di Mana, Kapan")
-| Nama Tabel    | Peran                                           | Grain                    |
-|---------------|--------------------------------------------------|--------------------------|
-| `dim_date`    | Waktu standar untuk seluruh peristiwa            | Satu baris per hari      |
-| `dim_company` | Representasi unik perusahaan & lokasi            | Satu baris per perusahaan|
-| `dim_people`  | Representasi unik individu (talenta/startup actor)| Satu baris per individu  |
-
-#### 📊 Tabel Fakta (Perekam Peristiwa & Ukuran Bisnis)
-| Nama Tabel                          | Peran                                                                 | Grain                                             |
-|------------------------------------|------------------------------------------------------------------------|---------------------------------------------------|
-| `fact_investment_round_participation` | Partisipasi investor dalam putaran pendanaan                            | Per partisipasi investor per putaran              |
-| `fact_funds`                       | Dana yang diterima di luar funding round formal                         | Per peristiwa penerimaan dana                     |
-| `fact_acquisitions`               | Akuisisi startup                                                       | Per peristiwa akuisisi                            |
-| `fact_ipos`                       | IPO startup                                                           | Per peristiwa IPO                                 |
-| `fact_milestones`                | Pencapaian penting/inovasi startup (Factless Fact Table)              | Per milestone                                     |
-| `fact_relationship`              | Relasi kerja antara individu dan perusahaan (Factless Fact Table)     | Per hubungan kerja                                |
+### Ringkasan Final Desain Data Warehouse
+Struktur mengikuti **Kimball Method** dengan **Star Schema**, di mana tabel **dimensi** menyimpan konteks (*who, what, where, when*) dan tabel **fakta** menyimpan peristiwa atau ukuran bisnis (*measurable events*).
 
 ---
 
-Pemetaan source-to-target disediakan dalam dokumen terpisah ya [source_to_target_mapping](source_to_target_mapping.md)
+#### Tabel Dimensi – Memberikan Konteks *Siapa, Apa, Di Mana, Kapan*
+| Nama Tabel     | Peran                                                                                                                                          | Grain                                   |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| `dim_date`     | Kalender standar yang mengakomodasi analisis tren dan agregasi waktu (harian, mingguan, bulanan, kuartalan, tahunan, musiman)                  | Satu baris per hari kalender unik       |
+| `dim_company`  | Representasi unik setiap perusahaan, mencakup informasi deskriptif (nama, industri) dan geografis (negara, kota, region)                       | Satu baris per perusahaan unik          |
+| `dim_people`   | Representasi unik setiap individu dalam ekosistem startup (founder, eksekutif, investor, karyawan kunci) dengan atribut demografi & karier     | Satu baris per individu unik            |
+
+---
+
+#### Tabel Fakta – Perekam Peristiwa & Ukuran Bisnis
+| Nama Tabel                              | Peran                                                                                                                                                                                                                 | Grain                                                                 |
+|-----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| `fact_investment_round_participation`   | Merekam partisipasi unik investor dalam satu putaran pendanaan perusahaan, termasuk jumlah investasi, posisi dalam ronde, dan tahap pendanaan                                                                        | Satu baris per kombinasi investor–putaran pendanaan–perusahaan        |
+| `fact_funds`                            | Merekam dana kelolaan (funds) yang dikumpulkan investor (VC, PE) pada waktu tertentu, digunakan untuk mengukur kapasitas dan sejarah pendanaan                                                                       | Satu baris per fund unik                                               |
+| `fact_acquisitions`                     | Merekam peristiwa akuisisi startup (nilai, tanggal, pihak pengakuisisi dan yang diakuisisi), sebagai indikator likuiditas pasar dan strategi exit                                                                    | Satu baris per peristiwa akuisisi unik                                 |
+| `fact_ipos`                             | Merekam peristiwa IPO (nilai saham, dana yang dihimpun, tanggal), digunakan untuk mengukur jalur exit dan perbandingan strategi IPO vs akuisisi                                                                      | Satu baris per peristiwa IPO unik                                      |
+| `fact_milestones`                       | **Factless Fact Table** – Merekam pencapaian atau aktivitas penting perusahaan (misal peluncuran produk, kerja sama, fundraising) sebagai indikator inovasi & perkembangan                                           | Satu baris per milestone unik                                          |
+| `fact_relationship`                     | **Factless Fact Table** – Merekam hubungan kerja unik antara individu dan perusahaan, untuk pemetaan modal manusia dan analisis jaringan profesional                                                                 | Satu baris per hubungan kerja unik                                     |
+
+
+Pemetaan source-to-target secara detail disediakan dalam dokumen berikut : [source_to_target_mapping](source_to_target_mapping.md).
+
+---
 
 ## Desain Alur Kerja ETL
 
