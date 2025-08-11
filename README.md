@@ -1,416 +1,451 @@
-# Proyek Data Pipeline Using Pyspark and Airflow: Startup Ecosystem
+# Data Pipeline Project Using PySpark and Airflow: Startup Ecosystem
+This document outlines an end-to-end data pipeline designed to integrate, process, and analyze data from the startup ecosystem across various sources. The project enables in-depth analysis of investment trends, company performance, and key player networks. It builds upon the  [Data Pipeline with Pyspark](https://github.com/oscar-sinaga/data_pipeline_pyspark) project, with modifications to incorporate Apache **Apache Airflow** for orchestration.
 
-Sebuah data pipeline end-to-end untuk mengintegrasikan, memproses, dan menganalisis data ekosistem startup dari berbagai sumber. Proyek ini dibuat memungkinkan analisis mendalam terhadap tren investasi, kinerja perusahaan, dan jaringan para pemain kunci. Proyek ini merupakan lanjutan dari proyek [Data Pipeline with Pyspark](https://github.com/oscar-sinaga/data_pipeline_pyspark) dengan modifikasi orkestrasi menggunakan **Apache Airflow**.
-
-## Daftar Isi
-- [Proyek Data Pipeline Using Pyspark and Airflow: Startup Ecosystem](#proyek-data-pipeline-using-pyspark-and-airflow-startup-ecosystem)
-  - [Daftar Isi](#daftar-isi)
+## Table of Contents
+- [Data Pipeline Project Using PySpark and Airflow: Startup Ecosystem](#data-pipeline-project-using-pyspark-and-airflow-startup-ecosystem)
+  - [Table of Contents](#table-of-contents)
   - [Requirements Gathering \& Solution](#requirements-gathering--solution)
-    - [Latar Belakang Masalah (Background Problem)](#latar-belakang-masalah-background-problem)
-      - [1. Ketidakmampuan Mengevaluasi Momentum Pertumbuhan Secara Akurat](#1-ketidakmampuan-mengevaluasi-momentum-pertumbuhan-secara-akurat)
-      - [2. Analisis Strategi *Exit* yang Terfragmentasi](#2-analisis-strategi-exit-yang-terfragmentasi)
-      - [3. Keterbatasan dalam Pemetaan Jaringan Modal Manusia](#3-keterbatasan-dalam-pemetaan-jaringan-modal-manusia)
-    - [Solusi yang Diusulkan (Proposed Solution)](#solusi-yang-diusulkan-proposed-solution)
-    - [Profiling Data](#profiling-data)
-    - [Desain Arsitektur Pipeline](#desain-arsitektur-pipeline)
-  - [Desain Target Database (Data Warehouse)](#desain-target-database-data-warehouse)
-    - [Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup](#proses-bisnis-1-evaluasi-perjalanan-pendanaan-dan-pertumbuhan-startup)
-      - [Tabel Fakta:](#tabel-fakta)
-    - [Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup](#proses-bisnis-2-analisis-strategi-exit-dan-kinerja-pasar-startup)
-      - [Tabel Fakta](#tabel-fakta-1)
-        - [**`fact_acquisition`**](#fact_acquisition)
-        - [**`fact_ipos`**](#fact_ipos)
-      - [Tabel Dimensi](#tabel-dimensi)
-        - [**`dim_company`**](#dim_company)
-        - [**`dim_date`**](#dim_date)
-    - [Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup](#proses-bisnis-3-pemetaan-ekosistem-dan-jaringan-penggerak-startup)
-      - [Tabel Fakta:](#tabel-fakta-2)
-      - [Tabel Dimensi:](#tabel-dimensi-1)
-    - [Ringkasan Final Desain Data Warehouse](#ringkasan-final-desain-data-warehouse)
-      - [Tabel Dimensi – Memberikan Konteks *Siapa, Apa, Di Mana, Kapan*](#tabel-dimensi--memberikan-konteks-siapa-apa-di-mana-kapan)
-      - [Tabel Fakta – Perekam Peristiwa \& Ukuran Bisnis](#tabel-fakta--perekam-peristiwa--ukuran-bisnis)
-  - [Desain Alur Kerja ETL](#desain-alur-kerja-etl)
+    - [Problem Background](#problem-background)
+      - [1. Difficulty in Accurately Gauging Growth Momentum](#1-difficulty-in-accurately-gauging-growth-momentum)
+      - [2. Fragmented Analysis of Exit Strategies](#2-fragmented-analysis-of-exit-strategies)
+      - [3. Limitations in Mapping the Human Capital Network](#3-limitations-in-mapping-the-human-capital-network)
+    - [Proposed Solution](#proposed-solution)
+    - [Data Profiling](#data-profiling)
+- [Data Quality Assessment and Handling Strategy](#data-quality-assessment-and-handling-strategy)
+  - [1. Low Completeness in Key Metrics](#1-low-completeness-in-key-metrics)
+    - [Impact on Funding \& Exit Analysis](#impact-on-funding--exit-analysis)
+    - [Impact on Network \& Career Mapping](#impact-on-network--career-mapping)
+    - [Impact on Geographical Analysis](#impact-on-geographical-analysis)
+  - [2. Issues with Data Integrity and Formatting](#2-issues-with-data-integrity-and-formatting)
+    - [Date Data Types](#date-data-types)
+    - [Pipeline Architecture Design](#pipeline-architecture-design)
+  - [Target Database Design (Data Warehouse)](#target-database-design-data-warehouse)
+    - [Business Process 1: Evaluating Startup Funding Journeys and Growth](#business-process-1-evaluating-startup-funding-journeys-and-growth)
+      - [Fact Tables](#fact-tables)
+      - [Dimension Tables](#dimension-tables)
+    - [Business Process 2: Analyzing Exit Strategies and Startup Market Performance](#business-process-2-analyzing-exit-strategies-and-startup-market-performance)
+      - [Fact Tables](#fact-tables-1)
+      - [Dimension Tables](#dimension-tables-1)
+    - [Business Process 3: Mapping the Ecosystem and Key Player Networks](#business-process-3-mapping-the-ecosystem-and-key-player-networks)
+      - [Fact Tables](#fact-tables-2)
+      - [Dimension Tables](#dimension-tables-2)
+  - [Final Data Warehouse Design Summary](#final-data-warehouse-design-summary)
+    - [Dimension Tables – Providing Context (Who, What, Where, When)](#dimension-tables--providing-context-who-what-where-when)
+    - [Fact Tables – Capturing Business Events \& Metrics](#fact-tables--capturing-business-events--metrics)
+  - [ETL Workflow Design](#etl-workflow-design)
     - [Staging Layer](#staging-layer)
     - [Warehouse Layer](#warehouse-layer)
-  - [Teknologi yang Digunakan](#teknologi-yang-digunakan)
-  - [Cara Menjalankan Pipeline](#cara-menjalankan-pipeline)
+  - [Technologies Used](#technologies-used)
+  - [How to Run the Pipeline](#how-to-run-the-pipeline)
 
 
 ## Requirements Gathering & Solution
 
-### Latar Belakang Masalah (Background Problem)
-Perusahaan **"VenturePulse"** adalah perusahaan konsultan investasi yang mempunyai klien dari berbagai perusahaan startup hingga institusi keuangan. Dalam menjalankan misinya, VenturePulse menghadapi kendala utama dalam mengintegrasikan dan menganalisis informasi dan data dari berbagai sumber secara menyeluruh. Informasi dan penjelasan mengenai berbagai data tersebut bisa dilihat di [dataset-doc.md](dataset-doc.md). Keterbatasan dan kerumitan akses terhadap data yang tersebar di berbagai format dan sumber tersebut menyebabkan beberapa masalah bisnis sebagai berikut:
+### Problem Background
+An investment consulting firm, **"VenturePulse"** serves a diverse clientele ranging from startups to financial institutions. In its mission, VenturePulse faces significant challenges in comprehensively integrating and analyzing data from disparate sources. Details about these data sources can be found in [dataset-doc.md](dataset-doc.md). These data access and complexity issues lead to several business problems:
 
-#### 1. Ketidakmampuan Mengevaluasi Momentum Pertumbuhan Secara Akurat
 
-- **Kondisi:** Data pendanaan (`funding_rounds`, `investments`, `funds`) dan pencapaian (`milestones`) tersedia dari berbagai sumber, namun belum dihubungkan secara eksplisit dalam model analitik.
-- **Masalah:** Sulit untuk menilai dampak dari pendanaan terhadap pertumbuhan startup secara langsung. Pertanyaan seperti “apakah pendanaan Seri B mendorong peluncuran produk utama?” tidak dapat dijawab secara langsung karena tidak adanya keterkaitan yang jelas antara waktu, sumber dana, dan pencapaian bisnis.
+#### 1. Difficulty in Accurately Gauging Growth Momentum
 
-**Tabel kunci:**
+- **Situation**: Funding data (`funding_rounds`, `investments`, `funds`) and achievement data (`milestones`) are available from various sources but are not explicitly linked in an analytical model.
+- **Problem:**: It is difficult to directly assess the impact of funding on a startup's growth. Questions like, "Did the Series B funding round drive a major product launch?" cannot be answered directly due to the lack of a clear link between funding timelines, capital sources, and business achievements.
+
+
+**Key Tables:**
 - `funding_rounds`, `investments`, `funds`, `milestones`
 
 ---
 
-#### 2. Analisis Strategi *Exit* yang Terfragmentasi
+#### 2. Fragmented Analysis of Exit Strategies
 
-- **Kondisi:** Data akuisisi (`acquisitions`) dan IPO (`ipos`) tersedia dalam database, namun belum dilengkapi dengan atribut deskriptif perusahaan atau waktu yang mendetail untuk mendukung analisis longitudinal dan sektoral.
-- **Masalah:** Tanpa model data yang terstruktur untuk membandingkan aktivitas dan nilai exit, sulit melakukan analisis perbandingan antar industri, waktu, atau jenis strategi exit. Pertanyaan seperti “berapa rata-rata valuasi IPO di sektor fintech dalam 5 tahun terakhir” atau “korporasi mana yang paling sering mengakuisisi startup” tidak bisa dijawab secara efisien.
+- **Situation:** Data on acquisitions (`acquisitions`) and IPOs (`ipos`) exist in the database but lack the detailed company or temporal attributes needed for longitudinal and sector-based analysis.
 
-**Tabel kunci:**
+- **Problem:** Without a structured data model to compare exit activities and values, it is challenging to perform comparative analyses across industries, timeframes, or exit strategy types. Questions like, "What was the average IPO valuation in the fintech sector over the last 5 years?" or "Which corporation acquires startups most frequently?" cannot be answered efficiently.
+
+**Key Tables:**
 - `acquisitions`, `ipos`,  `ipos`
 
 ---
 
-#### 3. Keterbatasan dalam Pemetaan Jaringan Modal Manusia
+#### 3. Limitations in Mapping the Human Capital Network
 
-- **Kondisi:** Data `relationships` yang menghubungkan individu ke perusahaan tersedia, dan pencapaian perusahaan (`milestones`) juga tersedia, namun belum terintegrasi dalam satu sumber terpusat agar pelacakan karier dan inovasi mudah dan dapat dihubungkan dengan berbagai data lain.
-- **Masalah:** Sulit melacak jejak kontribusi individu terhadap pertumbuhan dan inovasi lintas perusahaan. Visualisasi jaringan atau analisis dampak modal manusia terhadap performa startup tidak dapat dilakukan secara utuh karena keterbatasan keterkaitan antara individu, peran, dan hasil nyata yang dicapai.
+- **Kondisi:** `relationships` data linking individuals to companies is available, as is company achievement data (`milestones`). However, these are not integrated into a single, centralized source that would allow for easy career tracking and innovation mapping connected to other data points.
+- **Problem:** It is difficult to trace an individual's contributions to growth and innovation across different companies. Visualizing networks or analyzing the impact of human capital on startup performance is incomplete due to the limited connections between individuals, their roles, and tangible business outcomes.
 
-**Tabel kunci:**
+
+**Key Tables:**
 - `relationships`, `milestones`, `people`, `company`
 
+---
 
-### Solusi yang Diusulkan (Proposed Solution)
+### Proposed Solution
 
-Oleh karena itu perlu dibangun **Data Pipeline Terpusat** yang mengotomatisasi proses pengumpulan, pembersihan, transformasi, dan penyimpanan data dari berbagai sumber ke dalam sebuah **Data Warehouse** tunggal.
+To address these challenges, we will build a **Centralized Data Pipeline** that automates the collection, cleaning, transformation, and storage of data from various sources into a single **Data Warehouse**.
+The goal is to provide reliable, integrated, and analysis-ready data for strategic decision-making with minimal manual intervention.
 
-Tujuannya adalah menyediakan data yang andal, terintegrasi, dan siap pakai untuk analisis strategis tanpa intervensi manual berlebihan.
 
-### Profiling Data
+### Data Profiling
+The data profiling process helps identify specific data quality issues. These findings are foundational for defining the transformation steps in the ETL process, as they directly impact the accuracy and completeness of the subsequent business analysis.
 
-Proses profiling data membantu mengidentifikasi masalah kualitas data yang spesifik. Temuan ini menjadi dasar penting dalam menentukan langkah-langkah transformasi pada proses ETL, karena langsung memengaruhi keakuratan dan kelengkapan analisis bisnis yang akan dilakukan.
+# Data Quality Assessment and Handling Strategy
 
-**1. Kelengkapan Data (Completeness) yang Rendah pada Metrik Kunci**
+## 1. Low Completeness in Key Metrics
 
-Banyak kolom krusial untuk analisis bisnis memiliki persentase *missing values* yang sangat tinggi. Hal ini secara langsung menghambat proses bisnis yang telah didefinisikan:
+Many columns crucial for business analysis have a very high percentage of missing values, directly hindering the defined business processes.
 
-* **Dampak pada Analisis Pendanaan & Exit:**
-    * Pada tabel `funding_rounds`, data valuasi sangat tidak lengkap, dengan **48.1%** nilai hilang pada `pre_money_currency_code` dan **41.63%** pada `post_money_currency_code`.
-    * Pada tabel `acquisitions`, **81.67%** data `term_code` (tipe akuisisi: cash/stock) hilang.
-    * **Implikasi:** Tanpa data ini `pre_money_currency_code` dan`post_money_currency_code` analisis yang terkait dengan amount **mustahil** untuk untuk mengevaluasi kinerja pendanaan atau menganalisis strategi *exit* secara komprehensif jika tiap amount bergantung sama uangnya. Proses ETL harus menerapkan strategi untuk menangani nilai-nilai yang hilang ini sebelum memuatnya ke `fact_investment_round_participation` dan `fact_acquisitions`. 
-      * Pada tabel `funding_rounds`, kolom  `post_money_currency_code` dan `pre_money_currency_code` akan kita drop karena kolom `pre_money_valuation_usd` dan kolom `post_money_valuation_usd` datanya tidak kosong dan sudah dalam usd sehingga tidak perlukan lagi kedua kolom mata tersebut.
-      * Pada tabel `acquisitions` kolom `term_code` akan diisi `Unknown` untuk data yang hilang
+### Impact on Funding & Exit Analysis
+- In the `funding_rounds` table, valuation data is highly incomplete:
+  - **48.1%** missing values in `pre_money_currency_code`
+  - **41.63%** missing values in `post_money_currency_code`
+- In the `acquisitions` table:
+  - **81.67%** of `term_code` (acquisition type: cash/stock) data is missing
+- **Implication:**  
+  Without `pre_money_currency_code` and `post_money_currency_code`, any analysis involving investment amounts is impossible. It becomes unfeasible to evaluate funding performance or comprehensively analyze exit strategies if the amounts depend on their currency. The ETL process must implement a strategy to handle these missing values before loading data into `fact_investment_round_participation` and `fact_acquisitions`.
 
-* **Dampak pada Pemetaan Jaringan & Karier:**
-    * Tabel `relationship` memiliki data tanggal yang sangat minim: `start_at` hilang **53.48%** dan `end_at` hilang **85.71%**.
-    * **Implikasi:** Ini secara fundamental merusak kemampuan untuk "Memetakan Jaringan Modal Manusia". Analisis durasi karier atau periode aktif seseorang di sebuah perusahaan menjadi tidak akurat. Transformasi pada `fact_relationship` harus mampu menangani tanggal yang kosong ini.
-      * Oleh karena itu kita akan mengisi kedua kolom ini dengan tanggal jauh di masa depan (2100-01-01) untuk menandakan tanggal ini kosong. Sehingga bisa difilter saat analisis nantinya.
+**ETL Handling Plan:**
+- In `funding_rounds`:
+  - Drop `post_money_currency_code` and `pre_money_currency_code`
+  - Reason: `pre_money_valuation_usd` and `post_money_valuation_usd` are populated and already in USD
+- In `acquisitions`:
+  - Fill missing `term_code` with `Unknown`
 
-* **Dampak pada Analisis Geografis:**
-    * Informasi lokasi pada tabel `company` juga tidak lengkap, seperti `state_code` (**42.36%** hilang) dan `city` (**4.59%** hilang).
-    * **Implikasi:** Analisis berbasis lokasi menjadi kurang andal.
+---
 
-**2. Integritas dan Format Data yang Belum Standar**
+### Impact on Network & Career Mapping
+- In the `relationships` table:
+  - **53.48%** missing in `start_at`
+  - **85.71%** missing in `end_at`
+- **Implication:**  
+  This fundamentally undermines the ability to "Map the Human Capital Network." Analysis of career duration or an individual's active period at a company becomes inaccurate. Transformations for `fact_relationship` must handle these null dates.
 
-* **Tipe Data Tanggal:** Sebagian besar kolom tanggal di berbagai tabel (`funding_rounds.funded_at`, `acquisitions.acquired_at`, `relationship.start_at`) ditemukan sebagai tipe data `object` (string), bukan `datetime`.
-* **Implikasi:** Ini menyebabkan semua bentuk analisis berbasis waktu (tren, durasi, dsb.) terhambat. Oleh karena itu semua kolom tanggal harus dikonversi ke format `YYYYMMDD` sebagai *foreign key* ke `date_id` dari tabel `dim_date`.
+**ETL Handling Plan:**
+- Populate missing `start_at` and `end_at` with a far-future date (`2100-01-01`) to indicate the original date was empty, allowing easy filtering during analysis.
 
-### Desain Arsitektur Pipeline
+---
 
-Pipeline terdiri dari beberapa komponen utama:
+### Impact on Geographical Analysis
+- In the `company` table:
+  - **42.36%** missing in `state_code`
+  - **4.59%** missing in `city`
+- **Implication:**  
+  Location-based analysis becomes less reliable.
+
+---
+
+## 2. Issues with Data Integrity and Formatting
+
+### Date Data Types
+- Most date columns across various tables (`funding_rounds.funded_at`, `acquisitions.acquired_at`, `relationships.start_at`) are stored as `object` (string) types, not `datetime`.
+- **Implication:**  
+  This blocks all forms of time-based analysis (trends, durations, etc.).
+
+**ETL Handling Plan:**
+- Convert all date columns to `YYYYMMDD` integer format
+- Use `date_id` as a foreign key to the `dim_date` table
+
+### Pipeline Architecture Design
+
+The pipeline consists of several key components:
 
 - **Layers:**
-  - **Data Sources:** PostgreSQL, file CSV/JSON, dan API eksternal.
-  - **Staging Layer:** Menyimpan data mentah di PostgreSQL schema `staging` untuk proses transformasi lebih lanjut.
-  - **Warehouse Layer:** Menyimpan data terstruktur yang sudah ditransformasi dalam schema `warehouse` berbasis Star Schema.
+  - **Data Sources:** PostgreSQL, CSV/JSON files, and external APIs.
+  - **Staging Layer:** Stores raw data in a PostgreSQL schema `staging` for further transformation.
+  - **Warehouse Layer:** Stores transformed, structured data in a `warehouse` schema based on a Star Schema model.
 
 - **Logging & Monitoring:**
-  - Informasi setiap proses ETL akan dicatat dalam database log **PosgreSQL**.
+  - Information for each ETL process will be recorded in a dedicated PostgreSQL log database.
 
-- **Orchestration and Schedulling**
-  - Semua Proses ETL dijalankan dan dijadwalkan oleh sebuah tools orkestrasi **Apache Airflow**   
+- **Orchestration and Scheduling:**
+  - All ETL processes are executed and scheduled by the Apache Airflow orchestration tool.
 
-- **Temporary Data and Validation**
-  - Setiap temporary data antara proses extract dan load disimpan dalam bucket-bucket di data lake **Minio** dalam bentuk **csv** dan **parquet**.
-  - Data invalid juga akan disimpan dalam data lake **Minio**.
+- **Temporary Data and Validation:**
+  - Temporary data between the extract and load steps is stored in Minio data lake buckets as **CSV** and **Parquet** files.
+  - Invalid data is also stored in the Minio data lake for inspection.
 
-- **Error Alert**
-  - Setiap error dalam proses dag akan dikirimkan ke **Slack** 
+- **Error Alerting:**
+  - Any errors occurring in a DAG run will trigger a notification to **Slack**.
 
 ![Pipeline Design](picture/data_pipeline_workflow.drawio.png)
 
-## Desain Target Database (Data Warehouse)
 
-Struktur data warehouse dirancang berdasarkan prinsip **Kimball** menggunakan pendekatan **Star Schema**. Model ini menjadikan **tabel fakta** sebagai pusat penyimpanan peristiwa bisnis yang terukur, dikelilingi oleh **tabel dimensi** yang memberikan konteks ("siapa", "apa", "kapan", "di mana").
+## Target Database Design (Data Warehouse)
+
+The data warehouse structure is designed using the **Kimball methodology** with a **Star Schema** approach.  
+This model centers on **fact tables** (measurable business events) surrounded by **dimension tables** that provide context ("who," "what," "when," "where").
 
 ---
 
-### Proses Bisnis 1: Evaluasi Perjalanan Pendanaan dan Pertumbuhan Startup
+### Business Process 1: Evaluating Startup Funding Journeys and Growth
 
-Fokus: Mengukur aliran modal, momentum pertumbuhan, dan jaringan pendanaan startup.
+**Focus:** Measuring capital flow, growth momentum, and the startup funding network.
 
-#### Tabel Fakta:
+#### Fact Tables
+
 - **`fact_investment_round_participation`**
-  - **Grain:**  Satu baris mewakili satu keterlibatan unik investor dalam satu putaran pendanaan untuk sebuah perusahaan, termasuk informasi nilai investasi (jika ada), posisi dalam ronde, dan tahap investasi.
-  - **Peran:** Tabel paling krusial untuk analisis pendanaan. Tabel ini memungkinkan analisis jaringan co-investor dan menjawab pertanyaan seperti "siapa berinvestasi bersama siapa?"
+  - **Grain:** One row represents a single investor's unique participation in one funding round for a specific company, including investment value (if available), lead investor status, and investment stage.
+  - **Role:** Crucial for funding analysis, enabling co-investor network analysis and answering questions like “Who invests alongside whom?”.
 
 - **`fact_funds`**
-  
-  - **Grain:** Satu baris merepresentasikan satu fund (dana kelolaan) yang berhasil dikumpulkan oleh investor pada waktu tertentu.
-  - **Peran:** Tabel ini mencatat detail fund (dana kelolaan) dari investor (misal VC/PE) yang akan digunakan untuk berinvestasi dalam berbagai startup. Tabel ini berguna untuk:
-    - Menganalisis kapasitas pendanaan suatu investor (misalnya: total fund yang pernah dikumpulkan),
-    - Melacak pertumbuhan dan sejarah aktivitas pengumpulan dana
+  - **Grain:** One row represents a single fund raised by an investor at a specific time.
+  - **Role:** Records details of funds (e.g., from VCs/PE firms) used to invest in startups. Useful for:
+    - Analyzing an investor's funding capacity.
+    - Tracking fundraising history and growth.
 
 - **`fact_milestones`**
-  
-  - **Grain:** 
-    Satu baris merepresentasikan satu peristiwa milestone unik (misalnya peluncuran produk, akuisisi, kerja sama, fundraising) yang terjadi pada satu perusahaan, pada satu tanggal tertentu.
+  - **Grain:** One row represents a unique milestone event (e.g., product launch, acquisition, partnership, fundraising) at a company on a specific date.
+  - **Role:** Adds narrative and temporal context about significant achievements not directly shown in funding numbers.
 
-  - **Peran:**
-    Menyediakan informasi naratif dan temporal tentang pencapaian atau aktivitas penting perusahaan yang tidak tercermin langsung dalam angka pendanaan formal.
+#### Dimension Tables
 
 - **`dim_company`**
-  - **Grain:**
-    Satu baris merepresentasikan satu entitas perusahaan unik.
-
-  - **Peran:**
-    Menyediakan informasi deskriptif dan geografis perusahaan yang mendukung analisis lintas domain.
-
+  - **Grain:** One row per unique company.
+  - **Role:** Provides descriptive and geographical company information for cross-domain analysis.
 
 - **`dim_date`**
-  - **Grain:** Satu baris per hari kalender.
-  - **Peran:** memberikan kerangka waktu untuk seluruh analisis tren pendanaan.
+  - **Grain:** One row per calendar day.
+  - **Role:** Provides a time framework for analyzing funding trends.
 
 ---
 
-### Proses Bisnis 2: Analisis Strategi Exit dan Kinerja Pasar Startup
+### Business Process 2: Analyzing Exit Strategies and Startup Market Performance
 
-**Fokus:**  
-Menganalisis peristiwa puncak seperti akuisisi dan IPO dalam siklus hidup startup, serta mengevaluasi nilai dan waktu exit sebagai bagian dari strategi investasi.
+**Focus:** Analyzing peak events like acquisitions and IPOs, evaluating value and timing of exits as part of investment strategy.
 
+#### Fact Tables
 
-### Tabel Fakta
+- **`fact_acquisition`**
+  - **Grain:** One row represents a unique acquisition event linking the acquirer, the acquired company, and the acquisition date.
+  - **Role:** Tracks acquisition volume and value as market liquidity indicators; supports analysis by time, region, industry, or valuation.
 
-#### **`fact_acquisition`**
-* **Grain:**  
-  Satu baris mewakili satu peristiwa akuisisi unik yang menghubungkan perusahaan pengakuisisi, perusahaan yang diakuisisi dan tanggal akuisisi.
+- **`fact_ipos`**
+  - **Grain:** One row represents a unique IPO event, linked to the company and IPO date.
+  - **Role:**
+    - Measures exit via public markets.
+    - Provides valuation and capital raised at IPO.
+    - Enables comparison of IPO vs acquisition strategies.
+    - Helps measure investor returns when combined with funding data.
 
-* **Peran:**
-  - Merekam volume dan nilai akuisisi sebagai indikator likuiditas pasar startup.
-  - Menyediakan dasar analisis untuk tren akuisisi lintas waktu, wilayah, industri, atau ukuran valuasi.
+#### Dimension Tables
 
+- **`dim_company`**
+  - **Grain:** One row per unique company.
+  - **Role:** Reference for companies that acquire, are acquired, or go public; provides location and geographic metadata.
 
-#### **`fact_ipos`**
-* **Grain:**  
-  Satu baris mewakili satu peristiwa IPO unik, yang terkait ke perusahaan yang IPO dan tanggal IPO.
+- **`dim_date`**
+  - **Grain:** One row per unique calendar day.
+  - **Role:** Time framework for analyzing exit trends, supports aggregation (weekly, monthly, quarterly, yearly) and seasonal trend analysis.
 
-* **Peran:**
-  - Mengukur jalur exit melalui pasar publik.
-  - Menyediakan data valuasi dan dana yang dihimpun saat IPO.
-  - Memungkinkan perbandingan antara strategi IPO vs akuisisi untuk startup.
-  - Dapat digunakan untuk mengukur return investor jika dikombinasikan dengan data putaran pendanaan sebelumnya.
+---
 
+### Business Process 3: Mapping the Ecosystem and Key Player Networks
 
-### Tabel Dimensi
+**Focus:** Mapping individual contributions and relationships in the startup ecosystem.
 
-#### **`dim_company`**
-* **Grain:**  
-  Satu baris mewakili satu entitas perusahaan unik.
+#### Fact Tables
 
-* **Peran:**
-  - Menjadi referensi deskriptif bagi perusahaan yang:
-    - Melakukan akuisisi
-    - Diakuisisi
-    - Melakukan IPO
-  - Menyediakan informasi lokasi, region, dan metadata geografis untuk analisis spasial.
-  - Memungkinkan segmentasi berdasarkan wilayah, negara, atau kota.
-
-
-#### **`dim_date`**
-* **Grain:**  
-  Satu baris mewakili satu hari kalender unik.
-
-* **Peran:**
-  - Memberikan kerangka waktu untuk menganalisis tren exit startup dari waktu ke waktu.
-  - Memungkinkan agregasi berdasarkan minggu, bulan, kuartal, atau tahun.
-  - Mendukung visualisasi tren musiman terhadap aktivitas akuisisi dan IPO.
-
-
-### Proses Bisnis 3: Pemetaan Ekosistem dan Jaringan Penggerak Startup
-
-Fokus: Memetakan kontribusi individu dan relasi dalam pertumbuhan ekosistem startup.
-
-#### Tabel Fakta:
-- **`fact_relationsip`**
-  - **Grain:** Satu baris per hubungan kerja spesifik antara seorang individu dan perusahaan.
-  - **Peran:** Sumber utama pemetaan modal manusia, sangat penting untuk pelacakan karier dan analisis jaringan profesional.
+- **`fact_relationship`**
+  - **Grain:** One row per specific working relationship between an individual and a company.
+  - **Role:** Primary source for mapping human capital; essential for career tracking and network analysis.
 
 - **`fact_milestones`**
-  - **Grain:** Satu baris merepresentasikan satu peristiwa atau pencapaian (milestone) spesifik yang terkait dengan sebuah perusahaan.
-  - **Peran:** Memetakan hasil kerja dan bukti inovasi individu/perusahaan. Dapat digunakan untuk mengidentifikasi wilayah dengan frekuensi inovasi tinggi.
+  - **Grain:** One row represents a specific milestone event associated with a company.
+  - **Role:** Maps innovation outputs and can identify high-innovation regions.
 
-#### Tabel Dimensi:
+#### Dimension Tables
+
 - **`dim_people`**
-  - **Peran:** Subjek utama dari pemetaan individu dan karier.
-  - **Grain:** Satu baris per individu unik.
+  - **Grain:** One row per unique individual.
+  - **Role:** Main subject for career mapping.
 
 - **`dim_company`**
-  - **Peran:** memberikan konteks lokasi organisasi atau perusahaan dan hubungan profesional.
-  - **Grain:** Satu baris per perusahaan.
+  - **Grain:** One row per company.
+  - **Role:** Provides organizational and geographical context for professional relationships.
 
 - **`dim_date`**
-  - **Peran:** Menyediakan kerangka temporal untuk aktivitas profesional.
-  - **Grain:** Satu baris per hari kalender.
+  - **Grain:** One row per calendar day.
+  - **Role:** Temporal framework for professional activities.
+
+
+## Final Data Warehouse Design Summary
+
+The structure follows the **Kimball Method** using a **Star Schema**,  
+where **dimension tables** store context (*who, what, where, when*)  
+and **fact tables** store measurable business events.
 
 ---
 
-### Ringkasan Final Desain Data Warehouse
-Struktur mengikuti **Kimball Method** dengan **Star Schema**, di mana tabel **dimensi** menyimpan konteks (*who, what, where, when*) dan tabel **fakta** menyimpan peristiwa atau ukuran bisnis (*measurable events*).
+### Dimension Tables – Providing Context (Who, What, Where, When)
+
+| Table Name    | Role                                                                                                                                  | Grain                                   |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| `dim_date`    | A standard calendar to accommodate trend analysis and time-based aggregations (daily, weekly, monthly, quarterly, yearly, seasonal). | One row per unique calendar day         |
+| `dim_company` | A unique representation of each company, including descriptive (name, industry) and geographical (country, city, region) information.| One row per unique company              |
+| `dim_people`  | A unique representation of each individual in the startup ecosystem (founders, executives, investors, key employees) with demographic & career attributes. | One row per unique individual           |
 
 ---
 
-#### Tabel Dimensi – Memberikan Konteks *Siapa, Apa, Di Mana, Kapan*
-| Nama Tabel     | Peran                                                                                                                                          | Grain                                   |
-|----------------|------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| `dim_date`     | Kalender standar yang mengakomodasi analisis tren dan agregasi waktu (harian, mingguan, bulanan, kuartalan, tahunan, musiman)                  | Satu baris per hari kalender unik       |
-| `dim_company`  | Representasi unik setiap perusahaan, mencakup informasi deskriptif (nama, industri) dan geografis (negara, kota, region)                       | Satu baris per perusahaan unik          |
-| `dim_people`   | Representasi unik setiap individu dalam ekosistem startup (founder, eksekutif, investor, karyawan kunci) dengan atribut demografi & karier     | Satu baris per individu unik            |
+### Fact Tables – Capturing Business Events & Metrics
+
+| Table Name                          | Role                                                                                                                                                                                                                 | Grain                                                                |
+|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| `fact_investment_round_participation` | Records an investor's unique participation in a company's funding round, including investment amount, lead status, and funding stage.                                                                              | One row per investor–funding round–company combination               |
+| `fact_funds`                        | Records funds raised by investors (VCs, PEs) at a specific time, used to measure funding capacity and history.                                                                                                      | One row per unique fund                                               |
+| `fact_acquisitions`                 | Records startup acquisition events (value, date, acquirer, and acquiree), serving as an indicator of market liquidity and exit strategies.                                                                          | One row per unique acquisition event                                 |
+| `fact_ipos`                         | Records IPO events (stock value, funds raised, date), used to measure the public market exit path and compare IPO vs. acquisition strategies.                                                                       | One row per unique IPO event                                          |
+| `fact_milestones`                   | **Factless Fact Table** – Records significant company achievements or activities (e.g., product launches, partnerships) as indicators of innovation and progress.                                                   | One row per unique milestone                                          |
+| `fact_relationship`                 | **Factless Fact Table** – Records unique working relationships between individuals and companies, for human capital mapping and professional network analysis.                                                      | One row per unique working relationship                               |
 
 ---
 
-#### Tabel Fakta – Perekam Peristiwa & Ukuran Bisnis
-| Nama Tabel                              | Peran                                                                                                                                                                                                                 | Grain                                                                 |
-|-----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| `fact_investment_round_participation`   | Merekam partisipasi unik investor dalam satu putaran pendanaan perusahaan, termasuk jumlah investasi, posisi dalam ronde, dan tahap pendanaan                                                                        | Satu baris per kombinasi investor–putaran pendanaan–perusahaan        |
-| `fact_funds`                            | Merekam dana kelolaan (funds) yang dikumpulkan investor (VC, PE) pada waktu tertentu, digunakan untuk mengukur kapasitas dan sejarah pendanaan                                                                       | Satu baris per fund unik                                               |
-| `fact_acquisitions`                     | Merekam peristiwa akuisisi startup (nilai, tanggal, pihak pengakuisisi dan yang diakuisisi), sebagai indikator likuiditas pasar dan strategi exit                                                                    | Satu baris per peristiwa akuisisi unik                                 |
-| `fact_ipos`                             | Merekam peristiwa IPO (nilai saham, dana yang dihimpun, tanggal), digunakan untuk mengukur jalur exit dan perbandingan strategi IPO vs akuisisi                                                                      | Satu baris per peristiwa IPO unik                                      |
-| `fact_milestones`                       | **Factless Fact Table** – Merekam pencapaian atau aktivitas penting perusahaan (misal peluncuran produk, kerja sama, fundraising) sebagai indikator inovasi & perkembangan                                           | Satu baris per milestone unik                                          |
-| `fact_relationship`                     | **Factless Fact Table** – Merekam hubungan kerja unik antara individu dan perusahaan, untuk pemetaan modal manusia dan analisis jaringan profesional                                                                 | Satu baris per hubungan kerja unik                                     |
+A detailed source-to-target mapping is available in the following document:  
+📄 [source_to_target_mapping.md](source_to_target_mapping.md)
 
 
-Pemetaan source-to-target secara detail disediakan dalam dokumen berikut : [source_to_target_mapping](source_to_target_mapping.md).
-
----
-
-## Desain Alur Kerja ETL
+## ETL Workflow Design
 
 ### Staging Layer
-1. **Extract:** PySpark menarik data dari berbagai sumber (API, database source dan spreadsheet). Kemudian data tersebut akan disimpan sementara di Bucket `extracted-data` di **Minio**
-2. **Load:** Data yang sudah ditarik dari berbagai sumber oleh Pyspark ke **Minio** kemudian akan disimpan ke **Database Staging** PostgreSQL.  
+1. **Extract:** PySpark pulls data from various sources (APIs, source databases, and spreadsheets). The extracted data is temporarily stored in the `extracted-data` bucket in **Minio**.
+2. **Load:** Data collected from multiple sources in Minio by PySpark is then stored in the **PostgreSQL Staging Database**.
 
 ### Warehouse Layer
-1. **Extract dan Transform:** Data raw yang sudah disimpan di **Database Staging** kemudian diextract dan ditransform oleh pyspark. Proses Transformasi mencakup:
-   - Pembersihan data (null, duplikat)
-   - Standarisasi format
-   - Enrichment kolom
-   - Integrasi tabel berdasarkan `object_id`
-  
-   Setelah ditransformasi, data tersebut akan disimpan sementara di Bucket `transformed-data` di **Minio**
+1. **Extract and Transform:**  
+   Raw data stored in the **Staging Database** is extracted and transformed by PySpark.  
+   The transformation process includes:
+   - Data cleaning (null handling, duplicates removal)
+   - Format standardization
+   - Column enrichment
+   - Table integration based on `object_id`
+   
+   After transformation, the data is temporarily stored in the `transformed-data` bucket in **Minio**.
 
-2. **Validation:** Data hasil transformasi kemudian divalidasi dan report hasil validasinya disimpan pada **Data Storage Minio** dalam bentuk *json*.
-  
-3. **Load:** 
-Setelah divalidasi, data yang disimpan sementara di **Minio** kemudian di-load ke **Database Warehoyse** PostgreSQL :
+2. **Validation:**  
+   The transformed data is validated, and the validation report is stored in **Minio** as a `.json` file.
 
-Setiap proses ETL pada setiap tabel, informasi lognya akan disimpan pada **Database Log**. Alur ETL setiap layer ini diorkestrasi dengan **Airflow**. Jika ada Error yang terjadi pada suatu proses maka informasi errornya akan dikirim ke akun **Slack**. Data-Data akhir yang sudah ditransformasi dan disimpan database warehouse kemudian dapat divisualisasi dalam bentuk dashboard di **Metabase**. 
+3. **Load:**  
+   Once validated, the transformed data stored in Minio is loaded into the **PostgreSQL Warehouse Database**.
 
-## Teknologi yang Digunakan
+Every ETL process for each table is logged in the **Log Database**. The workflow for each layer is orchestrated by **Airflow**.  
+If an error occurs during a process, the error information is sent to a **Slack** account.  
+The final transformed data stored in the warehouse can then be visualized as dashboards in **Metabase**.
 
-- **Bahasa:** Python
-- **Engine Pemrosesan:** Apache Spark (via PySpark)
-- **Orcrhestation:** Apache Airflow
-- **Penyimpanan:**
-  - PostgreSQL sebagai tools **database** (Staging & Warehouse)
-  - Minio sebagai tools **data lake** (data Sementara hasil extract dan data hasil validasi)
+---
+
+## Technologies Used
+
+- **Language:** Python
+- **Processing Engine:** Apache Spark (via PySpark)
+- **Orchestration:** Apache Airflow
+- **Storage:**
+  - PostgreSQL (Staging & Warehouse databases)
+  - Minio (Data lake for extracted and validated data)
 - **Containerization:** Docker Image, Docker Compose
-- **Visualization and Dashboard** : Metabase
-- **Alerting** : Slack
+- **Visualization & Dashboard:** Metabase
+- **Alerting:** Slack
 
-## Cara Menjalankan Pipeline
+---
 
-1. **Prasyarat:**
-   - Docker & Docker Compose
+## How to Run the Pipeline
 
-2. **Clone Repo:**
+1. **Prerequisites:**
+   - Docker & Docker Compose installed
+
+2. **Clone the Repository:**
    ```bash
    git clone https://github.com/oscar-sinaga/Startup-Ecosystem-Pipeline-using-Airflow-Spark.git
    cd Startup-Ecosystem-Pipeline-using-Airflow-Spark
+   ```
+3. **Create `.env` File in Project Root:**
 
-3. **Create env.file di project repo:**
-   
-   *Contoh :*
+   *Example:*
 
-   ```bash
-    AIRFLOW_UID=50000
-    AIRFLOW_FERNET_KEY='rBEckHti5AkaGaAxQOMiXsC1FuZoufNy0I5xdBRP684='
-    AIRFLOW_DB_URI=postgresql+psycopg2://airflow:airflow@airflow_metadata/airflow
-    AIRFLOW_DB_USER=airflow
-    AIRFLOW_DB_PASSWORD=airflow
-    AIRFLOW_DB_NAME=airflow
-    AIRFLOW_PORT=5433
+    ```bash
+   AIRFLOW_UID=50000
+   AIRFLOW_FERNET_KEY='rBEckHti5AkaGaAxQOMiXsC1FuZoufNy0I5xdBRP684='
+   AIRFLOW_DB_URI=postgresql+psycopg2://airflow:airflow@airflow_metadata/airflow
+   AIRFLOW_DB_USER=airflow
+   AIRFLOW_DB_PASSWORD=airflow
+   AIRFLOW_DB_NAME=airflow
+   AIRFLOW_PORT=5433
 
-    STARTUP_INVESTMENTS_DB_USER=postgres
-    STARTUP_INVESTMENTS_DB_PASSWORD=postgres
-    STARTUP_INVESTMENTS_DB_NAME=startup_investments_db
-    STARTUP_INVESTMENTS_PORT=5434
+   STARTUP_INVESTMENTS_DB_USER=postgres
+   STARTUP_INVESTMENTS_DB_PASSWORD=postgres
+   STARTUP_INVESTMENTS_DB_NAME=startup_investments_db
+   STARTUP_INVESTMENTS_PORT=5434
 
-    STAGING_DB_USER=postgres
-    STAGING_DB_PASSWORD=postgres
-    STAGING_DB_NAME=staging_db
-    STAGING_PORT=5435
+   STAGING_DB_USER=postgres
+   STAGING_DB_PASSWORD=postgres
+   STAGING_DB_NAME=staging_db
+   STAGING_PORT=5435
 
-    WAREHOUSE_DB_USER=postgres
-    WAREHOUSE_DB_PASSWORD=postgres
-    WAREHOUSE_DB_NAME=warehouse_db
-    WAREHOUSE_PORT=5437
+   WAREHOUSE_DB_USER=postgres
+   WAREHOUSE_DB_PASSWORD=postgres
+   WAREHOUSE_DB_NAME=warehouse_db
+   WAREHOUSE_PORT=5437
 
-    LOG_DB_USER=postgres
-    LOG_DB_PASSWORD=postgres
-    LOG_DB_NAME=log_db
-    LOG_PORT=5436
+   LOG_DB_USER=postgres
+   LOG_DB_PASSWORD=postgres
+   LOG_DB_NAME=log_db
+   LOG_PORT=5436
 
-    MINIO_ROOT_USER=minio
-    MINIO_ROOT_PASSWORD=minio123
+   MINIO_ROOT_USER=minio
+   MINIO_ROOT_PASSWORD=minio123
 
-    MB_DB_TYPE=postgres
-    MB_DB_DBNAME=metabase_db
-    MB_DB_PORT=5432  # Ensure this matches PostgreSQL service
-    MB_DB_USER=metabase_user
-    MB_DB_PASS=metabase_pass
-    MB_DB_HOST=metabase-db  # This should match the service name in docker-compose
+   MB_DB_TYPE=postgres
+   MB_DB_DBNAME=metabase_db
+   MB_DB_PORT=5432
+   MB_DB_USER=metabase_user
+   MB_DB_PASS=metabase_pass
+   MB_DB_HOST=metabase-db
 
-    MB_ADMIN_EMAIL=admin@example.com
-    MB_ADMIN_PASSWORD=admin123456
+   MB_ADMIN_EMAIL=admin@example.com
+   MB_ADMIN_PASSWORD=admin123456
     ```
 
-4. **Create Spredsheet Credentials**
+4. **Create Spreadsheet Credentials**
 
-    Terlebih dahulu buat credentials untuk akses ke spreadsheetnya. Disini file `data\source\people.csv` dan `data\source\relationships.csv` perlu di upload ke gdrive dijadikan spreadsheet  dan akses ke api spreadsheetnya akan diambil berdasarkan credentials yang digenerate oleh **Google Data Cloud Servive**.
+    First, create credentials for accessing the spreadsheet. The files `data/source/people.csv` and `data/source/relationships.csv` need to be uploaded to Google Drive and converted into spreadsheets. API access to these spreadsheets will be obtained using credentials generated from **Google Cloud Platform**.
 
-5. **Save the credentials**
-  
-     Simpan credentials di folder `dags/include`
 
-6.  **Membangun dan Menjalankan Services**:
-    
-    Jalankan perintah berikut untuk membangun image dan menjalankan semua service (Spark, PostgreSQL, Minio, Airflow) di background:
+5. **Save the Credentials**
+
+    Save the credentials file into the `dags/include` folder.
+
+
+6. **Build and Start Services**
+
+    Run the following command to build the images and start all services (Spark, PostgreSQL, Minio, Airflow) in the background:
+
     ```bash
     docker-compose up -d --build
     ```
-7. **Tambahkan Connections dan Variables**
-   Tambahkan konfigurasi seperti `Connections` dan `Variables` agar proses di Airflow bisa terhubung dengan beberapa source seperti **Database PostgreSQL** ,  **Data Lake Minio** atau dengan alat preprocessing seperti **Apache Airflow** :
-   ```bash
-   docker exec -it airflow_standalone bash
-   cd dags/include
-   airflow connections import connections.yaml
-   airflow variables import variables.json
-   exit
+
+7. **Add Connections and Variables**
+   
+    Add configuration settings such as `Connections` and `Variables` so that Airflow can connect to multiple sources like **PostgreSQL Database**, **Minio Data Lake**, or preprocessing tools like **Apache Spark**:
+    
+    ```bash
+    docker exec -it airflow_standalone bash
+    cd dags/include
+    airflow connections import connections.yaml
+    airflow variables import variables.json
+    exit
     ```
 
-8.  **Memicu ETL Job**:
-    
-    Untuk menjalankan pipeline, 
-    - Buka endpoint **Airflow webserver** --> `localhost:8082` (sesuaikan dengan port airflow webserver)
-    - Login ke airflow menggunakan username dan password yang diambil dari log container **airflow**: 
-      ![log_airflow_standalone](picture/log_airflow_standalone.png)
-    - kemudian jalankan salah satu dag seperti berikut:
-      ![how_run_dag](picture/how_run_dag.png)
+8. **Trigger ETL Job**
 
-9. **Membuat Dashboard**
-    Untuk membuat dashboard atau visualisasi
-    - Buka endpoint **Metabase** --> `localhost:8003` (sesuaikan dengan port metabase)
-    - Isi username/email dan password (sesuai dengan yang sudah dikonfigurasi di `.env`)
-    - Mulai membuat visualisasi dan dashboard. Contoh dashboard:
-  ![contoh_dashboard_metabase](picture/contoh_dashboard_metabase.png) 
+    To run the pipeline:  
+    - Open the **Airflow Webserver** at `localhost:8082` (adjust according to your Airflow webserver port).  
+    - Log in to Airflow using the username and password from the **Airflow container logs**:  
+      ![log_airflow_standalone](picture/log_airflow_standalone.png)  
+    - Trigger one of the DAGs as shown below:  
+      ![how_run_dag](picture/how_run_dag.png)  
 
+---
+
+9. **Create Dashboard**
+
+    To create a dashboard or visualization:  
+    - Open **Metabase** at `localhost:8003` (adjust according to your Metabase port).  
+    - Enter the username/email and password (as configured in `.env`).  
+    - Start creating visualizations and dashboards. Example:  
+      ![contoh_dashboard_metabase](picture/contoh_dashboard_metabase.png)  
